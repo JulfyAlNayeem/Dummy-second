@@ -153,7 +153,7 @@ const waitForDb = () =>
     };
 
     // Routes
-    app.use("/", apiLimiter, attachIo, routeIndex);
+    app.use("/api", apiLimiter, attachIo, routeIndex);
 
     // 404
     app.use((req, res) =>
