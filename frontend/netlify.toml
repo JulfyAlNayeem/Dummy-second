@@ -1,0 +1,68 @@
+# Netlify configuration for the React + Vite frontend.
+# Place this file at the ROOT of the frontend directory (the directory you point
+# Netlify's "Base directory" at), i.e. frontend/netlify.toml.
+
+[build]
+  # If you connect the WHOLE monorepo to Netlify, set "Base directory" to "frontend"
+  # in the Netlify UI and leave this as just "npm run build".
+  # If you deploy the frontend folder as its own separate repo, same command works.
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# ───────────────────────────────────────────────────────────────────────────
+# API PROXY — replaces what the Vite dev-server proxy does locally.
+# Netlify has no backend of its own, so every /api/* request must be
+# forwarded to your Render backend URL. Replace the placeholder below with
+# your actual Render service URL once it's deployed.
+#
+# IMPORTANT: this rewrites the PATH too — Netlify's redirect "to" target
+# strips nothing automatically the way Vite's `rewrite` option did, so the
+# backend must be reached at the SAME /api prefix, OR you keep the backend's
+# routes mounted at /api (recommended — see backend changes).
+# ───────────────────────────────────────────────────────────────────────────
+[[redirects]]
+  from = "/api/*"
+  to = "https://YOUR-BACKEND-NAME.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# Static/encrypted file serving — uploaded media, served from backend disk.
+[[redirects]]
+  from = "/uploads/*"
+  to = "https://YOUR-BACKEND-NAME.onrender.com/uploads/:splat"
+  status = 200
+  force = true
+
+# Public images (default avatars etc.)
+[[redirects]]
+  from = "/images/*"
+  to = "https://YOUR-BACKEND-NAME.onrender.com/images/:splat"
+  status = 200
+  force = true
+
+# ───────────────────────────────────────────────────────────────────────────
+# SPA fallback — React Router needs every unknown path to resolve to index.html
+# so client-side routing (e.g. /reports, /tb/:chatroom_id) works on full page
+# loads and refreshes, not just in-app navigation.
+# This MUST be the LAST redirect rule (Netlify checks rules top to bottom).
+# ───────────────────────────────────────────────────────────────────────────
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache built JS/CSS aggressively — Vite content-hashes filenames so this is safe
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

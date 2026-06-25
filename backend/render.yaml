@@ -1,0 +1,84 @@
+# Render Blueprint — Infrastructure as Code for the backend.
+# Place this file at the ROOT of your repository (not inside backend/).
+# Render auto-detects render.yaml when you create a new "Blueprint" service
+# and create a Web Service from it: https://dashboard.render.com/blueprints
+#
+# This is the Render equivalent of what you'd otherwise configure by hand in
+# the dashboard — using this file means your config is version-controlled
+# and reproducible, but it's entirely optional: you can skip this file and
+# just configure the service manually in Render's UI instead (see the
+# step-by-step instructions in DEPLOYMENT.md for the manual path).
+
+services:
+  - type: web
+    name: dummy-backend
+    runtime: node
+    region: oregon          # change to whichever region is closest to your users
+    plan: free               # change to "starter" or higher for a persistent
+                              # disk / no cold-starts / no ephemeral filesystem wipe
+    rootDir: backend          # this repo is a monorepo — tells Render to cd into
+                              # backend/ before running install/build/start
+    buildCommand: npm install
+    startCommand: npm start   # runs "node app.js" — see package.json fix
+    healthCheckPath: /api/health  # confirmed to exist in src/routes.js, mounted under /api
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: UTC
+      - key: LOG_LEVEL
+        value: info
+      # Everything below is marked sync:false — meaning Render will prompt you
+      # to fill these in via the dashboard rather than committing real secrets
+      # to this file. Fill them in once, in the Render UI, after first deploy.
+      - key: ORIGIN_URL
+        sync: false
+      - key: CLIENT_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: ACCESS_TOKEN_SECRET
+        sync: false
+      - key: REFRESH_TOKEN_SECRET
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: LIVEKIT_URL
+        sync: false
+
+    # ⚠️ IMPORTANT — Render's free and starter web service plans use an
+    # EPHEMERAL filesystem: every redeploy, restart, or scale event wipes
+    # anything written to local disk. This app writes uploaded media to
+    # backend/uploads/ via multer (see multerConfig.js). On Render's free
+    # tier, every uploaded file will be PERMANENTLY LOST on the next deploy.
+    #
+    # Options, in order of effort:
+    #   1. Accept the data loss for now (fine for a demo/MVP)
+    #   2. Upgrade to a paid plan and attach a Render persistent Disk,
+    #      mounted at /opt/render/project/src/backend/uploads
+    #   3. (Recommended long-term) Migrate file storage to S3-compatible
+    #      object storage (AWS S3, Cloudflare R2, Backblaze B2) — this is
+    #      a real code change to multerConfig.js and the /uploads serving
+    #      middleware in app.js, not just a config change.
+    disk:
+      name: uploads-disk
+      mountPath: /opt/render/project/src/backend/uploads
+      sizeGB: 1
+      # ^ Remove this entire `disk:` block if staying on the free plan —
+      # persistent disks require a paid instance type and Render will
+      # reject the blueprint deploy otherwise.
