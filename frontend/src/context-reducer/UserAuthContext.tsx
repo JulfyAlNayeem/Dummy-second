@@ -64,7 +64,7 @@ const UserAuthProvider = ({ children }: { children: React.ReactNode }): JSX.Elem
     (currentUser) => {
       if (!currentUser || socket.current) return;
 
-      const socketUrl = window.location.origin;
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
       const newSocket = io(socketUrl, {
         withCredentials: true,
