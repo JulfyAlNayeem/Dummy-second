@@ -1,27 +1,37 @@
 # Netlify configuration for the React + Vite frontend.
 #
-# ── WHERE TO PUT THIS FILE — two supported options ──────────────────────────
+# ⚠️ THIS FILE MUST EXIST AT THE REPO ROOT, AND NOWHERE ELSE. ⚠️
+# Per Netlify's own documentation: "A base directory specified in a root-level
+# netlify.toml overrides the UI setting" — a root-level netlify.toml ALWAYS
+# wins over any other config, including a copy placed inside frontend/.
+# If a netlify.toml also exists at frontend/netlify.toml, DELETE IT. Two
+# copies caused this project to keep building with stale settings even after
+# this file was updated, because the root copy silently took priority every
+# single time regardless of which one was actually edited.
 #
-# OPTION A (recommended): Set Netlify's "Base directory" to "frontend" in the
-#   Netlify UI (Site settings → Build & deploy → Build settings). Then put
-#   this file at frontend/netlify.toml. With Base directory set correctly,
-#   "command" and "publish" below are relative to frontend/, so they stay
-#   simple: command = "npm run build", publish = "dist".
-#
-# OPTION B (if you don't set Base directory, or pnpm workspace detection
-#   keeps overriding it): Put this file at the REPO ROOT instead, and use
-#   the "cd frontend &&" command shown below, with publish pointing at
-#   "frontend/dist" (relative to repo root).
-#
-# This file is written for OPTION B because it's more robust against
-# Netlify's pnpm-workspace auto-detection, which was the actual cause of
-# the "Missing script: build" error — Netlify ran `npm run build` from the
-# REPO ROOT (which has no "build" script) even though packagePath: frontend
-# was detected. If you've confirmed Base directory is correctly set to
-# "frontend" in the UI, you can simplify to Option A instead.
+# Verify only one copy exists by running, from your repo root:
+#   find . -name netlify.toml -not -path "*/node_modules/*"
+# It should print exactly one line: ./netlify.toml
 
 [build]
-  command = "cd frontend && npm install && npm run build"
+  # The frontend package is named "alfajr" in frontend/package.json
+  # (see `"name": "alfajr"`) — pnpm's --filter flag needs this exact name,
+  # not the folder name "frontend".
+  #
+  # Netlify auto-detects this pnpm workspace and runs `pnpm install` for
+  # ALL 4 workspace packages BEFORE this build.command even executes (visible
+  # in every build log as "pnpm workspaces detected... Successfully installed
+  # dependencies", happening prior to "Starting build script"). So this
+  # command does NOT need to install anything itself.
+  #
+  # Do NOT use `cd frontend && npm install && npm run build` — npm does not
+  # understand pnpm's symlink-based node_modules layout in a workspace and
+  # incorrectly tries to run lifecycle scripts that belong to a DEPENDENCY's
+  # own package.json (specifically axios's "prepare": "husky install", meant
+  # only for axios's own contributors), which crashes the build with
+  # "husky: not found". `pnpm --filter alfajr` avoids this entirely and
+  # works correctly regardless of which directory it's invoked from.
+  command = "pnpm --filter alfajr run build"
   publish = "frontend/dist"
 
 [build.environment]
