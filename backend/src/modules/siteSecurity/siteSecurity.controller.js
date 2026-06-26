@@ -1,5 +1,3 @@
-
-
 import jwt from "jsonwebtoken";
 import SiteSecurityMessage from "./models/siteSecurityMessageModel.js";
 
@@ -7,10 +5,19 @@ import SiteSecurityMessage from "./models/siteSecurityMessageModel.js";
 // JWT secret just for signing — keep this in .env
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: false,          // HTTP, not HTTPS
-  sameSite: "lax",
+  // Cross-origin deployments (Netlify frontend + Render backend) require
+  // secure:true + sameSite:"none" — browsers refuse to send "lax" cookies
+  // on cross-site fetch/XHR requests, which is exactly what RTK Query makes.
+  // "lax" only works when frontend and backend share the same origin (e.g.
+  // your VPS, where both are served from one domain) — that's why this
+  // worked there but silently failed after the cookie was never resent
+  // back to the server on the split Netlify/Render deployment.
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
   maxAge: 24 * 60 * 60 * 1000, // 1 day
 };
 
@@ -124,7 +131,11 @@ export const checkSiteVerification = async (req, res) => {
 
   } catch {
     // Expired or tampered token
-    res.clearCookie("site_verified");
+    res.clearCookie("site_verified", {
+      httpOnly: COOKIE_OPTIONS.httpOnly,
+      secure: COOKIE_OPTIONS.secure,
+      sameSite: COOKIE_OPTIONS.sameSite,
+    });
     return res.status(200).json({ verified: false });
   }
 };
