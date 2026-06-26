@@ -253,6 +253,8 @@ const MessageContainer = ({ messagesContainerRef, participant }: { messagesConta
 
     // Handle reply message events for this conversation
     const handleReplyReceive = (message) => {
+      const senderId = typeof message.sender === 'object' ? message.sender?._id : message.sender;
+      if (senderId === user._id) return;
       if (message.conversation === conversationId) {
         dispatch(addMessage({
           ...message,
