@@ -106,6 +106,14 @@ const conversationSlice = createSlice({
       if (state.byConversationId[conversationId].messages[messageId]) {
         return;
       }
+      
+      if (
+        message._id &&
+        message._id !== messageId &&
+        state.byConversationId[conversationId].messages[message._id]
+      ) {
+        return;
+      }
       state.byConversationId[conversationId].messages[messageId] = {
         ...message,
         createdAt: message.createdAt || new Date().toISOString(),
