@@ -399,7 +399,7 @@ export class MessageGateway {
   /**
    * Handle add reaction
    */
-  async handleAddReaction(socket, { messageId, reaction, clientTempId }) {
+  async handleAddReaction(socket, { conversationId, messageId, reaction, clientTempId }) {
     try {
       if (!messageId || !reaction) {
         socket.emit("reactionError", {
@@ -411,17 +411,30 @@ export class MessageGateway {
 
       const userId = socket.user.id;
       const result = await addReaction({
+        conversationId,
         userId,
         messageId,
-        reaction,
-        io: this.io,
+        emoji: reaction, // frontend sends `reaction`, controller expects `emoji`
       });
 
       if (result.success) {
+        // Convert Map to plain object for JSON serialisation
+        const reactionsObj = result.message.reactions
+          ? Object.fromEntries(result.message.reactions)
+          : {};
+
+        // Confirm to the sender
         socket.emit("reactionSuccess", {
           messageId,
-          reaction,
-          clientTempId
+          reactions: reactionsObj,
+          clientTempId,
+        });
+
+        // Broadcast to every other participant in the conversation room
+        socket.to(conversationId).emit("reactionUpdate", {
+          messageId,
+          reactions: reactionsObj,
+          clientTempId,
         });
       }
     } catch (error) {
@@ -436,11 +449,11 @@ export class MessageGateway {
   /**
    * Handle remove reaction
    */
-  async handleRemoveReaction(socket, { messageId, reaction, clientTempId }) {
+  async handleRemoveReaction(socket, { conversationId, messageId, reaction, clientTempId }) {
     try {
-      if (!messageId || !reaction) {
+      if (!messageId) {
         socket.emit("unreactionError", {
-          message: "Missing messageId or reaction",
+          message: "Missing messageId",
           clientTempId
         });
         return;
@@ -448,17 +461,27 @@ export class MessageGateway {
 
       const userId = socket.user.id;
       const result = await removeReaction({
+        conversationId,
         userId,
         messageId,
-        reaction,
-        io: this.io,
       });
 
       if (result.success) {
+        const reactionsObj = result.message.reactions
+          ? Object.fromEntries(result.message.reactions)
+          : {};
+
         socket.emit("unreactionSuccess", {
           messageId,
-          reaction,
-          clientTempId
+          reactions: reactionsObj,
+          clientTempId,
+        });
+
+        // Broadcast to every other participant in the conversation room
+        socket.to(conversationId).emit("reactionUpdate", {
+          messageId,
+          reactions: reactionsObj,
+          clientTempId,
         });
       }
     } catch (error) {
