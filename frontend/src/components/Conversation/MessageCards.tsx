@@ -55,7 +55,7 @@ const MessageCards = ({
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("reactionUpdate", ({ messageId, reactions, clientTempId }) => {
+    const handleReactionUpdate = ({ messageId, reactions, clientTempId }) => {
       if (
         messageId === (msg._id || msg.clientTempId) ||
         clientTempId === msg.clientTempId
@@ -69,9 +69,9 @@ const MessageCards = ({
           }),
         );
       }
-    });
+    };
 
-    socket.on("reactionSuccess", ({ messageId, reactions, clientTempId }) => {
+    const handleReactionSuccess = ({ messageId, reactions, clientTempId }) => {
       if (
         messageId === (msg._id || msg.clientTempId) ||
         clientTempId === msg.clientTempId
@@ -85,9 +85,9 @@ const MessageCards = ({
           }),
         );
       }
-    });
+    };
 
-    socket.on("reactionError", ({ message, clientTempId }) => {
+    const handleReactionError = ({ message, clientTempId }) => {
       console.error("Reaction error:", message);
       // Revert optimistic update in Redux
       dispatch(
@@ -98,12 +98,17 @@ const MessageCards = ({
           reactions: msg.reactions || {},
         }),
       );
-    });
+    };
+
+    socket.on("reactionUpdate", handleReactionUpdate);
+    socket.on("reactionSuccess", handleReactionSuccess);
+    socket.on("reactionError", handleReactionError);
 
     return () => {
-      socket.off("reactionUpdate");
-      socket.off("reactionSuccess");
-      socket.off("reactionError");
+      // Pass the same function reference — only removes THIS card's listener
+      socket.off("reactionUpdate", handleReactionUpdate);
+      socket.off("reactionSuccess", handleReactionSuccess);
+      socket.off("reactionError", handleReactionError);
     };
   }, [
     socket,
