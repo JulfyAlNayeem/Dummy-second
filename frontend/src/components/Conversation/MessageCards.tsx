@@ -7,7 +7,7 @@ import CallCard from "../chatroom/CallCard";
 import MessageReactions from "../chatroom/MessageReactions";
 import ReactionPicker from "../chatroom/ReactionPicker";
 import { themeSenderMessage, themeReceiverMessage } from "@/lib/themeUtils";
-import { BASE_URL } from "@/utils/baseUrls";
+import { BASE_URL, resolveMediaUrl } from "@/utils/baseUrls";
 import { cn } from "@/lib/utils";
 import {
   useConversation,
@@ -55,6 +55,8 @@ const MessageCards = ({
   useEffect(() => {
     if (!socket) return;
 
+    // Named handlers so socket.off() only removes THIS card's listener,
+    // not every other MessageCards instance's listener on the same event.
     const handleReactionUpdate = ({ messageId, reactions, clientTempId }) => {
       if (
         messageId === (msg._id || msg.clientTempId) ||
@@ -275,7 +277,7 @@ const MessageCards = ({
                 msg.replyTo.messageType === "text"
                   ? `${msg.replyTo.text}`
                   : msg.replyTo.media?.[0]?.url
-                    ? `${BASE_URL}${msg.replyTo.media[0].url}`
+                    ? resolveMediaUrl(msg.replyTo.media[0].url)
                     : null
               }
               contentType={msg.messageType}
@@ -283,7 +285,7 @@ const MessageCards = ({
                 msg.messageType === "text"
                   ? msg.text
                   : msg.media?.[0]?.url
-                    ? `${BASE_URL}${msg.media[0].url}`
+                    ? resolveMediaUrl(msg.media[0].url)
                     : null
               }
             />
@@ -339,14 +341,14 @@ const MessageCards = ({
                       <ImageDisplay
                         img={msg.media
                           .filter((media) => media.type === "image")
-                          .map((media) => ({ img: `${BASE_URL}${media.url}` }))}
+                          .map((media) => ({ img: resolveMediaUrl(media.url) }))}
                         onImageClick={(index) =>
                           onImageClick(
                             index,
                             msg.media
                               .filter((media) => media.type === "image")
                               .map((media) => ({
-                                img: `${BASE_URL}${media.url}`,
+                                img: resolveMediaUrl(media.url),
                               })),
                           )
                         }
@@ -361,7 +363,7 @@ const MessageCards = ({
                           msg.media.find((media) => media.type === "audio")
                             ?.duration || "0:00"
                         }
-                        audioUrl={`${BASE_URL}${msg.media.find((media) => media.type === "audio")?.url}`}
+                        audioUrl={resolveMediaUrl(msg.media.find((media) => media.type === "audio")?.url)}
                       />
                     </div>
                   )}
@@ -369,7 +371,7 @@ const MessageCards = ({
                   msg.media.some((media) => media.type === "video") && (
                     <div className="mt-2">
                       <VideoMessageCard
-                        videoUrl={`${BASE_URL}${msg.media.find((media) => media.type === "video")?.url}`}
+                        videoUrl={resolveMediaUrl(msg.media.find((media) => media.type === "video")?.url)}
                       />
                     </div>
                   )}
@@ -379,7 +381,7 @@ const MessageCards = ({
                       <ReplyCard
                         isOwnMessage={isOwnMessage}
                         contentType="file"
-                        content={`${BASE_URL}${msg.media.find((media) => media.type === "file")?.url}`}
+                        content={resolveMediaUrl(msg.media.find((media) => media.type === "file")?.url)}
                         themeIndex={themeIndex}
                       />
                     </div>
@@ -405,9 +407,9 @@ const MessageCards = ({
                 {msg.img && (
                   <div className="mb-2">
                     <ImageDisplay
-                      img={[{ img: `${BASE_URL}${msg.img}` }]}
+                      img={[{ img: resolveMediaUrl(msg.img) }]}
                       onImageClick={() =>
-                        onImageClick(0, [{ img: `${BASE_URL}${msg.img}` }])
+                        onImageClick(0, [{ img: resolveMediaUrl(msg.img) }])
                       }
                     />
                   </div>

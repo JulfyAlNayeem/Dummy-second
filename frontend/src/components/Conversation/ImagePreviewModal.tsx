@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle }  from "lucide-react";
 import { useGetImageMessagesQuery } from '@/redux/api/messageApi';
-import { BASE_URL } from '@/utils/baseUrls';
+import { resolveMediaUrl } from '@/utils/baseUrls';
 
 const ImagePreviewModal = ({ previewImage, setPreviewImage, conversationId, user }: any): JSX.Element | null => {
   const [imageCursor, setImageCursor] = useState<string | null>(null);
@@ -24,10 +24,12 @@ const ImagePreviewModal = ({ previewImage, setPreviewImage, conversationId, user
     { skip: !conversationId }
   );
 
-  // Initialize previewImages with the initial previewImage
+  // Initialize previewImages with the initial previewImage.
+  // previewImage is already a fully-resolved URL (via resolveMediaUrl in MessageCards),
+  // so store it as-is — no stripping needed.
   useEffect(() => {
     if (previewImage && previewImages.length === 0) {
-      setPreviewImages([{ id: 'initial', media: [{ url: previewImage.replace(`${BASE_URL}uploads/`, ''), type: 'image' }], createdAt: new Date() }]);
+      setPreviewImages([{ id: 'initial', media: [{ url: previewImage, type: 'image' }], createdAt: new Date() }]);
     }
   }, [previewImage, previewImages.length]);
 
@@ -49,12 +51,11 @@ const ImagePreviewModal = ({ previewImage, setPreviewImage, conversationId, user
   const handleNextImage = useCallback((e) => {
     e.stopPropagation();
     if (currentImageIndex < previewImages.length - 1) {
-      // Move to the next older image
       setCurrentImageIndex((prev) => prev + 1);
-      setPreviewImage(`${BASE_URL}uploads/${previewImages[currentImageIndex + 1].media[0].url}`);
+      // media[0].url from the API is a relative server path — resolve it
+      setPreviewImage(resolveMediaUrl(previewImages[currentImageIndex + 1].media[0].url));
       setDirection('older');
     } else if (hasMoreImages) {
-      // Fetch more older images
       setDirection('older');
       setImageCursor(previewImages[previewImages.length - 1]?.createdAt?.getTime?.() || imageCursor);
       refetch();
@@ -64,12 +65,10 @@ const ImagePreviewModal = ({ previewImage, setPreviewImage, conversationId, user
   const handlePreviousImage = useCallback((e) => {
     e.stopPropagation();
     if (currentImageIndex > 0) {
-      // Move to the previous newer image
       setCurrentImageIndex((prev) => prev - 1);
-      setPreviewImage(`${BASE_URL}uploads/${previewImages[currentImageIndex - 1].media[0].url}`);
+      setPreviewImage(resolveMediaUrl(previewImages[currentImageIndex - 1].media[0].url));
       setDirection('newer');
     } else if (hasMoreImages) {
-      // Fetch more newer images
       setDirection('newer');
       setImageCursor(previewImages[0]?.createdAt?.getTime?.() || imageCursor);
       refetch();
