@@ -55,13 +55,30 @@ const PasswordGenerator = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     setGeneratedPassword(password);
   };
 
-  const handleCopyPassword = () => {
-    if (generatedPassword) {
-      navigator.clipboard.writeText(generatedPassword);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+  const handleCopyPassword = async () => {
+  if (!generatedPassword) return;
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(generatedPassword);
+    } else {
+      // Fallback for older/mobile browsers without Clipboard API access
+      const textArea = document.createElement("textarea");
+      textArea.value = generatedPassword;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
     }
-  };
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  } catch (err) {
+    console.error("Copy failed:", err);
+  }
+};
 
   const handleCloseModal = () => {
     setInputText("");
