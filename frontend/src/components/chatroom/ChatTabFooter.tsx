@@ -168,7 +168,7 @@ const ChatTabFooter = ({
           )}
         </div>
       )}
-      <div className={themeFooterBg(themeIndex, `w-full center gap-1 z-20 px-5 ${
+      <div className={themeFooterBg(themeIndex, `w-full center gap-1 z-20 px-5 overflow-hidden ${
           editingMessage
           || replyingMessage
           || (selectedImages && selectedImages.length > 0)
@@ -177,7 +177,7 @@ const ChatTabFooter = ({
           : bottomContentIndex
             ? "rounded-t-3xl"
             : "rounded-b-3xl"
-        } transition-all duration-1000 py-[10px] duratu`)}> 
+        } transition-all duration-1000 py-[10px]`)}> 
         {!showButtons ? (
           <button
             className={themeFooterIcon(themeIndex, "chatIcon cursor-pointer")}
