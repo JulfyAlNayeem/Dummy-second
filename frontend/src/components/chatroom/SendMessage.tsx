@@ -759,7 +759,7 @@ const SendMessage = forwardRef(
     };
 
     return (
-      <form onSubmit={handleSubmit} className="between w-full duration-700 transition-all">
+      <form onSubmit={handleSubmit} className="between w-full duration-500 transition-all">
         <textarea
           className={cn(themeChatInput(themeIndex), themeBorder(themeIndex), `chatBox min-h-[37px] pt-1 ${showButtons ? '' : 'subtle-bounce'} ${bottomContentIndex || showButtons ? "max-h-[37px]" : "max-h-[150px]"}`)}
           value={inputValue}
