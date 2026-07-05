@@ -140,7 +140,7 @@ export default function Approvals(): JSX.Element {
         )}
 
         {filteredApprovals.length === 0 ? (
-          <Card className="bg-gradient-to-b from-gray-800 to-gray-700 dark:from-gray-200 dark:to-gray-100 border-gray-700 dark:border-gray-300">
+          <Card className="bg-gray-800 border-gray-700 dark:border-gray-300">
             <CardContent className="p-12 text-center">
               <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white dark:text-gray-900 mb-2">No Pending Approvals</h3>

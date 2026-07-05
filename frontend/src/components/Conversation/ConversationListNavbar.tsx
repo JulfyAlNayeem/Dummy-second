@@ -71,11 +71,8 @@ export default function ChatListNavbar({
         {/* Reports dashboard link for admin, superadmin, and developer */}
         {user.role === "admin" ||
         user.role === "superadmin" ||
-        user.role === "developer" ? (
-          <>
-          {user.role === "developer"
-                ?
-               <Link
+        user.role === "developer"  && (
+          <Link
             to={
                APP_ROUTES.DEVELOPER_REPORTS
             }
@@ -87,26 +84,9 @@ export default function ChatListNavbar({
                 "size-[22px] cursor-pointer",
               )}
             />
-          </Link>:
-
-           <Link
-            to={
-               APP_ROUTES.ADMIN_REPORTS
-            }
-            title="Reports"
-          >
-            <MailWarning
-              className={themeNavbarIcon(
-                themeIndex,
-                "size-[22px] cursor-pointer",
-              )}
-            />
           </Link>
-          }
-          </>
-         
-        ) : null}
-
+         ) }
+        
         <Popover>
           <PopoverTrigger asChild>
             <button>

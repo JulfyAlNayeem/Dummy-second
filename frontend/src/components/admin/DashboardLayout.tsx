@@ -27,7 +27,7 @@ export default function DashboardLayout({ children, type }: { children: React.Re
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 dark:from-gray-100 dark:to-gray-200 text-white dark:text-gray-900">
+    <div className="min-h-screen bg-gray-950 text-white dark:bg-gray-100 dark:text-gray-900">
       {/* Hamburger button for mobile */}
       <button
         className="fixed top-4 left-4 z-30 md:hidden bg-gray-800 dark:bg-gray-200 p-2 rounded-full shadow"
@@ -37,7 +37,7 @@ export default function DashboardLayout({ children, type }: { children: React.Re
         <Menu className="h-6 w-6 text-white dark:text-gray-900" />
       </button>
       {/* Flex container for sidebar and content */}
-      <div className="md:flex">
+      <div className="md:flex min-h-screen">
         <DashboardSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} type={type} />
         {/* Overlay for mobile sidebar */}
         {sidebarOpen && (
@@ -46,9 +46,9 @@ export default function DashboardLayout({ children, type }: { children: React.Re
             onClick={() => setSidebarOpen(false)}
           />
         )}
-        <div className="flex-1 ml-0 md:ml-0 h-screen overflow-y-auto">
+        <div className="flex-1 ml-0 md:ml-0 h-screen overflow-y-auto flex flex-col">
           <DashboardHeader />
-          <main className="p-6">{children}</main>
+          <main className="p-6 flex-1 min-h-0 bg-gray-950/90 dark:bg-gray-100/90">{children}</main>
         </div>
       </div>
     </div>

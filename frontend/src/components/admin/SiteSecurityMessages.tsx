@@ -37,7 +37,7 @@ const SiteSecurityMessages = (): JSX.Element => {
   return (
     <div className="space-y-6">
       {/* Create Message Form */}
-      <Card className="bg-[#1a2332] dark:bg-[#eff0f3] border-gray-600 dark:border-gray-300">
+      <Card className="bg-gray-900 dark:bg-[#eff0f3] border-gray-600 dark:border-gray-300">
         <CardHeader>
           <CardTitle className="text-[#eff0f3] dark:text-[#1a2332]">Create Security Messages</CardTitle>
         </CardHeader>
@@ -84,7 +84,7 @@ const SiteSecurityMessages = (): JSX.Element => {
       </Card>
 
       {/* Display Messages */}
-      <Card className="bg-[#1a2332] dark:bg-[#eff0f3] border-gray-600 dark:border-gray-300">
+      <Card className="bg-gray-900 dark:bg-[#eff0f3] border-gray-600 dark:border-gray-300">
         <CardHeader>
           <CardTitle className="text-[#eff0f3] dark:text-[#1a2332]">Stored Security Messages</CardTitle>
         </CardHeader>

@@ -56,7 +56,7 @@ export default function AllUsersTab(): JSX.Element {
   }
 
   return (
-    <Card className="bg-gradient-to-b from-gray-800 to-gray-700 dark:from-gray-200 dark:to-gray-100 border-gray-700 dark:border-gray-300">
+    <Card className="bg-gray-950/95 dark:bg-gray-50/95 border-gray-700 dark:border-gray-300">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -111,7 +111,7 @@ export default function AllUsersTab(): JSX.Element {
             <SelectTrigger className="w-40 bg-gray-900/50 dark:bg-gray-300/50 text-white dark:text-gray-900 border-gray-600 dark:border-gray-400 hover:bg-gray-900/70 dark:hover:bg-gray-300/70">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className="bg-gradient-to-b from-gray-800 to-gray-700 dark:from-gray-200 dark:to-gray-100 text-white dark:text-gray-900 border-gray-600 dark:border-gray-400">
+            <SelectContent className="bg-gray-950/95 dark:bg-gray-50/95 text-white dark:text-gray-900 border-gray-600 dark:border-gray-400">
               <SelectItem value="all" className="hover:bg-gray-900/50 dark:hover:bg-gray-300/50">All Status</SelectItem>
               <SelectItem value="active" className="hover:bg-gray-900/50 dark:hover:bg-gray-300/50">Active</SelectItem>
               <SelectItem value="inactive" className="hover:bg-gray-900/50 dark:hover:bg-gray-300/50">Inactive</SelectItem>
@@ -124,7 +124,7 @@ export default function AllUsersTab(): JSX.Element {
             <SelectTrigger className="w-40 bg-gray-900/50 dark:bg-gray-300/50 text-white dark:text-gray-900 border-gray-600 dark:border-gray-400 hover:bg-gray-900/70 dark:hover:bg-gray-300/70">
               <SelectValue placeholder="Role" />
             </SelectTrigger>
-            <SelectContent className="bg-gradient-to-b from-gray-800 to-gray-700 dark:from-gray-200 dark:to-gray-100 text-white dark:text-gray-900 border-gray-600 dark:border-gray-400">
+            <SelectContent className="bg-gray-950/95 dark:bg-gray-50/95 text-white dark:text-gray-900 border-gray-600 dark:border-gray-400">
               <SelectItem value="all" className="hover:bg-gray-900/50 dark:hover:bg-gray-300/50">All Roles</SelectItem>
               <SelectItem value="user" className="hover:bg-gray-900/50 dark:hover:bg-gray-300/50">User</SelectItem>
               <SelectItem value="moderator" className="hover:bg-gray-900/50 dark:hover:bg-gray-300/50">Moderator</SelectItem>

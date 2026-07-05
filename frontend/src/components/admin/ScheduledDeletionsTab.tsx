@@ -25,7 +25,7 @@ console.log('scheduledDeletionsData',scheduledDeletionsData)
   }
 
   return (
-    <Card className="bg-gradient-to-br from-gray-800 to-gray-700 dark:from-green-100 dark:to-green-50 border-gray-700 dark:border-green-300">
+    <Card className="bg-gray-950/95 dark:bg-gray-50/95 border-gray-700 dark:border-green-300">
       <CardHeader>
         <CardTitle className="flex items-center text-white dark:text-gray-900">
           <AlertTriangle className="h-5 w-5 mr-2 text-orange-400 dark:text-orange-600" />
@@ -47,7 +47,7 @@ console.log('scheduledDeletionsData',scheduledDeletionsData)
             No users scheduled for deletion
           </div>
         ) : (
-          <Table className="bg-gray-700 dark:bg-green-100 border-gray-600 dark:border-green-300">
+          <Table className="bg-gray-800 dark:bg-gray-100 border-gray-600 dark:border-green-300">
             <TableHeader>
               <TableRow className="border-gray-600 dark:border-green-300 hover:bg-gray-600 dark:hover:bg-green-200">
                 <TableHead className="text-white dark:text-gray-900">User</TableHead>
@@ -88,7 +88,7 @@ console.log('scheduledDeletionsData',scheduledDeletionsData)
                       <Button
                         size="sm"
                         onClick={() => dispatch(openModal({ modalName: "preventDeletion", data: schedule }))}
-                        className="bg-gradient-to-r from-gray-700 to-gray-600 dark:from-green-300 dark:to-green-200 text-white dark:text-gray-900 hover:from-gray-600 hover:to-gray-500 dark:hover:from-green-400 dark:hover:to-green-300"
+                        className="bg-gray-700 dark:bg-green-200 text-white dark:text-gray-900 hover:bg-gray-600 dark:hover:bg-green-300"
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Prevent

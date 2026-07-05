@@ -52,7 +52,7 @@ export default function AttendanceMarking({ classId, dateStr }: { classId: strin
   // Handle loading and error states
   if (sessionsLoading) {
     return (
-      <Card className="bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-gray-300 dark:border-gray-700">
+      <Card className="bg-slate-100/95 dark:bg-slate-950/95 border-gray-300 dark:border-gray-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white"><Clock className="h-5 w-5" /> Mark Attendance</CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-300">Loading session data...</CardDescription>
@@ -63,7 +63,7 @@ export default function AttendanceMarking({ classId, dateStr }: { classId: strin
 
   if (sessionsError || !session) {
     return (
-      <Card className="bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-gray-300 dark:border-gray-700">
+      <Card className="bg-slate-100/95 dark:bg-slate-950/95 border-gray-300 dark:border-gray-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white"><Clock className="h-5 w-5" /> Mark Attendance</CardTitle>
           <CardDescription className="text-gray-600 dark:text-gray-300">No session available for today</CardDescription>
@@ -73,7 +73,7 @@ export default function AttendanceMarking({ classId, dateStr }: { classId: strin
   }
 
   return (
-    <Card className="bg-gradient-to-b dark:from-gray-200 dark:to-gray-100 from-gray-800 to-gray-700 border-gray-300 dark:border-gray-700">
+    <Card className="bg-slate-100/95 dark:bg-slate-950/95 border-gray-300 dark:border-gray-700">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white"><Clock className="h-5 w-5" /> Mark Attendance</CardTitle>
         <CardDescription className="text-gray-600 dark:text-gray-300">

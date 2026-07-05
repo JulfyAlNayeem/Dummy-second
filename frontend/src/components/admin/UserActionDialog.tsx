@@ -169,7 +169,7 @@ export default function UserActionDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md bg-gradient-to-br from-gray-800 to-gray-700 dark:from-blue-100 dark:to-blue-50 border-gray-600 dark:border-blue-300">
+      <DialogContent className="max-w-md bg-gray-950/95 dark:bg-gray-50/95 border-gray-600 dark:border-blue-300">
         <DialogHeader>
           <DialogTitle className="text-white dark:text-gray-900">{config.title}</DialogTitle>
           <DialogDescription className="text-gray-300 dark:text-blue-600">{config.description}</DialogDescription>
@@ -342,7 +342,7 @@ export default function UserActionDialog({
           <Button
             variant="outline"
             onClick={handleClose}
-            className="bg-gradient-to-r from-gray-700 to-gray-600 dark:from-blue-300 dark:to-blue-200 text-white dark:text-gray-900 border-gray-600 dark:border-blue-300 hover:from-gray-600 hover:to-gray-500 dark:hover:from-blue-400 dark:hover:to-blue-300"
+            className="bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-600 dark:border-blue-300 hover:bg-gray-600 dark:hover:bg-gray-300"
           >
             Cancel
           </Button>

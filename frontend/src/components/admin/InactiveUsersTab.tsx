@@ -21,7 +21,7 @@ export default function InactiveUsersTab(): JSX.Element {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-gray-800 to-gray-700 dark:from-purple-100 dark:to-purple-50 border-gray-700 dark:border-purple-300">
+    <Card className="bg-gray-950/95 dark:bg-gray-50/95 border-gray-700 dark:border-purple-300">
       <CardHeader>
         <CardTitle className="flex items-center text-white dark:text-gray-900">
           <Clock className="h-5 w-5 mr-2 text-yellow-400 dark:text-yellow-600" />
@@ -43,7 +43,7 @@ export default function InactiveUsersTab(): JSX.Element {
             No inactive users found
           </div>
         ) : (
-          <Table className="bg-gray-700 dark:bg-purple-100 border-gray-600 dark:border-purple-300">
+          <Table className="bg-gray-800 dark:bg-gray-100 border-gray-600 dark:border-purple-300">
             <TableHeader>
               <TableRow className="border-gray-600 dark:border-purple-300 hover:bg-gray-600 dark:hover:bg-purple-200">
                 <TableHead className="text-white dark:text-gray-900">User</TableHead>

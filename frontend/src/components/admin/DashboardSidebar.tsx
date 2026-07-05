@@ -1,4 +1,4 @@
-import { Users, Settings, LayoutDashboard, UserRoundCheck, X, Megaphone, ShieldAlert, User, Bell, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Settings, LayoutDashboard, UserRoundCheck, X, Megaphone, ShieldAlert, User, Bell, ChevronLeft, ChevronRight, StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useParams } from "react-router-dom";
 import chatIcon from "@/assets/icons/chatIcon.svg";
@@ -22,10 +22,12 @@ const navItems = {
     { name: "Assignments", icon: UserRoundCheck, value: "assignmentpanel" },
     { name: "Alertness", icon: ShieldAlert, value: "alertness" },
     { name: "Attendance", icon: Megaphone, value: "attendance" },
+    { name: "Notes", icon: StickyNote, value: "notes" },
   ],
   student: [
     // { name: "Student Dashboard", icon: LayoutDashboard, value: "student-dashboard" },
     { name: "My Assignments", icon: UserRoundCheck, value: "my-assignments" },
+    { name: "Notes", icon: StickyNote, value: "notes" },
     // { name: "Attendance", icon: Megaphone, value: "student-attendance" },
     // { name: "Profile", icon: User, value: "student-profile" },
   ],
@@ -34,7 +36,11 @@ const navItems = {
     { name: "Approvals", icon: UserRoundCheck, value: "approvals" },
     { name: "User Management", icon: Users, value: "user-management" },
     { name: "System Settings", icon: Settings, value: "system-settings" },
+    { name: "Reports", icon: ShieldAlert, value: "reports" },
     { name: "Notices", icon: Bell, value: "notice" },
+  ],
+  developer: [
+    { name: "Reports", icon: ShieldAlert, value: "reports" },
   ],
 }[type] || []; // Fallback to empty array if type is invalid
 
@@ -53,7 +59,7 @@ const navItems = {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 bg-gradient-to-b from-gray-900 to-gray-800 dark:from-gray-100 dark:to-gray-200 border-r border-gray-700/30 dark:border-gray-300/30 transform h-screen transition-all duration-300 ease-in-out z-30 shadow-lg",
+          "fixed inset-y-0 left-0 bg-gray-950/95 dark:bg-gray-950/95 border-r border-gray-700/30 dark:border-gray-300/30 transform h-screen transition-all duration-300 ease-in-out z-30 shadow-lg",
           "md:translate-x-0", // always visible on md+
           open ? "translate-x-0 shadow-xl" : "-translate-x-full", // slide in/out on mobile
           "md:static md:inset-auto md:transform-none",
@@ -96,7 +102,15 @@ const navItems = {
         <nav className="space-y-2" role="navigation">
           {navItems.map((item) => (
             <Link
-              to={type === "teacher" ? `/e2ee/t/teacher/${item.value}/${classId}` : `/superadmin/${item.value}/`}
+              to={
+                type === "teacher"
+                  ? `/e2ee/t/teacher/${item.value}/${classId}`
+                  : type === "student"
+                    ? `/e2ee/t/student/${item.value}/${classId}`
+                    : type === "developer"
+                      ? `/developer/${item.value}`
+                      : `/superadmin/${item.value}/`
+              }
               key={item.value}
               className={cn(
                 "w-full py-3 px-4 flex items-center text-sm font-medium rounded-lg text-white dark:text-gray-900 transition-all duration-200 transform hover:scale-105 group relative",

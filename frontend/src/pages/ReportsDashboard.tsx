@@ -71,8 +71,8 @@ export default function ReportsDashboard(): JSX.Element {
     : "Misbehaviour and community violation reports";
 
   return (
-    // <DashboardLayout type="admin">
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-6">
+    <DashboardLayout type={isDeveloper ? "developer" : "admin"}>
+      <div className="min-h-full bg-transparent text-gray-100 p-0">
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* Header */}
@@ -269,6 +269,6 @@ export default function ReportsDashboard(): JSX.Element {
         </div>
       )}
     </div>
-    // </DashboardLayout>
+  </DashboardLayout>
   );
 }

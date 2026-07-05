@@ -51,7 +51,7 @@ export function ApprovalCard({ approval, onApprove, onReject }: ApprovalCardProp
 
   return (
     <Card className={cn(
-      "border-gray-700 dark:border-gray-300 bg-gradient-to-b from-gray-800 to-gray-700 dark:from-gray-200 dark:to-gray-100 text-white dark:text-gray-900 hover:bg-gradient-to-b hover:from-gray-750 hover:to-gray-650 dark:hover:from-gray-250 dark:hover:to-gray-150 transition-colors"
+      "border-gray-700 dark:border-gray-300 bg-gray-950/95 dark:bg-gray-50/95 text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
     )}>
       <CardHeader>
         <div className="flex items-start justify-between">
