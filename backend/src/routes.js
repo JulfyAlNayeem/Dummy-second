@@ -24,6 +24,7 @@ import { socialRoutes } from "./modules/social/index.js";
 import { formRoutes } from "./modules/form/index.js";
 import reminderRoutes from "./modules/reminder/reminder.routes.js";
 import uploadsRoutes from "./common/routes/uploads.routes.js";
+import noteRouters from "./modules/note/note.routes.js";
 
 const apiRoute = Router();
 
@@ -46,6 +47,7 @@ apiRoute.use("/class-group/attendance", attendanceRoutes);
 apiRoute.use("/class-group/alertness", alertnessRoutes);
 apiRoute.use("/class-group/notification", notificationRoutes);
 apiRoute.use("/class-group/files", fileRoutes);
+apiRoute.use("/notes", noteRouters)
 apiRoute.use("/social", socialRoutes);
 apiRoute.use("/site-security", siteSecurityRoutes);
 apiRoute.use("/conversation-keys", conversationKeyRoutes);
