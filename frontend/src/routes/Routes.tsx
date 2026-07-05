@@ -26,6 +26,8 @@ import AdminRoutes from "./private/AdminRoutes";
 import TeacherRoutes from "./private/TeacherRoutes";
 import PublicRoute from "./public/PublicRoute";
 import SignIn from "@/pages/SignIn";
+import TeacherNotes from "@/components/teacher/TeacherNotes";
+import StudentNotes from "@/components/student/StudentNotes";
 import SignUp from "@/pages/SignUp";
 import ChatTab from "@/components/Conversation/ChatTab";
 import ChatTabWithErrorBoundary from "@/components/Conversation/ChatTabWithErrorBoundary";
@@ -78,11 +80,13 @@ export const Routes = createBrowserRouter(
         <Route path={APP_ROUTES.TEACHER_MEMBER_MANAGEMENT} element={<MemberManagement />} />
         <Route path={APP_ROUTES.TEACHER_ALERTNESS} element={<AlertnessPanelSocket />} />
         <Route path={APP_ROUTES.TEACHER_ATTENDANCE} element={<AttendancePanel />} />
+        <Route path={APP_ROUTES.TEACHER_NOTES} element={<TeacherNotes />} />
       </Route>
 
       {/* Student Routes Wrapper */}
       <Route element={<StudentRoutes />}>
         <Route path={APP_ROUTES.STUDENT_ASSIGNMENT_PANEL} element={<StudentAssignmentPanelPage />} />
+        <Route path={APP_ROUTES.STUDENT_NOTES} element={<StudentNotes />} />
       </Route>
 
        {/* Developer Routes Wrapper */}

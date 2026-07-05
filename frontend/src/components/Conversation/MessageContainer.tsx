@@ -383,6 +383,7 @@ const MessageContainer = ({ messagesContainerRef, participant }: { messagesConta
   };
 
   const handleNote = (msgId, selectedText) => {
+    setCurrentMessageId(msgId);
     setSelectedText(selectedText);
     setShowNoteModal(true);
   };
@@ -539,6 +540,8 @@ const MessageContainer = ({ messagesContainerRef, participant }: { messagesConta
         <NoteModal
           open={showNoteModal}
           selectedText={selectedText}
+          classId={conversationId}
+          messageId={currentMessageId}
           onSave={handleSaveNote}
           onClose={() => setShowNoteModal(false)}
         />

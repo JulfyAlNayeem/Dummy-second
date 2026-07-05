@@ -31,6 +31,7 @@ import { reminderApi } from "./api/reminderApi";
 import { formApi } from "./api/formApi";
 import { callApi } from "./api/callApi";
 import callReducer from "./slices/callSlice";
+import { noteApi } from "./api/noteApi";
 
 // No-op storage for server-side rendering
 const createNoopStorage = (): any => ({
@@ -101,6 +102,7 @@ const reducers = {
   [formApi.reducerPath]: formApi.reducer,
   [callApi.reducerPath]: callApi.reducer,
   call: callReducer,
+  [noteApi.reducerPath]: noteApi.reducer,
 };
 
 export const store = configureStore({
@@ -138,6 +140,7 @@ export const store = configureStore({
       reminderApi.middleware,
       formApi.middleware,
       callApi.middleware,
+      noteApi.middleware
     ]),
 });
 

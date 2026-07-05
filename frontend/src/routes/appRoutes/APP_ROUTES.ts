@@ -25,12 +25,14 @@ export const APP_ROUTES = {
   TEACHER_MEMBER_MANAGEMENT: "/e2ee/t/teacher/member-management/:classId",
   TEACHER_ALERTNESS: "/e2ee/t/teacher/alertness/:classId",
   TEACHER_ATTENDANCE: "/e2ee/t/teacher/attendance/:classId",
+  TEACHER_NOTES: "/e2ee/t/teacher/notes/:classId",
 
   // Student Routes
   // http://localhost:3002/e2ee/t/student/assignmentpanel/68b30b52fe6974afdd060d80/
   STUDENT_ASSIGNMENT_PANEL: "/e2ee/t/student/assignmentpanel/:classId",
   STUDENT_ALERTNESS: "/e2ee/t/student/alertness/:classId",
   STUDENT_ATTENDANCE: "/e2ee/t/teacher/attendance/:classId",
+  STUDENT_NOTES: "/e2ee/t/student/notes/:classId",
 
   // Developer Routes
   DEVELOPER_REPORTS : "/developer/reports",
