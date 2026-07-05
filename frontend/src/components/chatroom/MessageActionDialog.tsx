@@ -57,9 +57,9 @@ const MessageActionDialog = ({
       case 'note':
         onNote(messageId, textToUse);
         break;
-      // case 'quote':
-      //   onQuote(messageId, selectedText || wybranaWiadomosc);
-      //   break;
+      case 'quote':
+        onQuote(messageId, selectedText || wybranaWiadomosc);
+        break;
       case 'select':
         if (selectedText) {
           navigator.clipboard.writeText(selectedText);
@@ -134,13 +134,13 @@ const MessageActionDialog = ({
 
           {selectedText && (
             <>
-              {/* <button
+              <button
                 onClick={() => handleAction('quote')}
                 className="flex items-center gap-3 text-left hover:bg-gray-800/80 px-3 py-2 rounded-lg text-sm transition-all duration-200 hover:translate-x-1"
               >
                 <Quote className="w-4 h-4 text-purple-400" />
                 <span>Quote</span>
-              </button> */}
+              </button>
 
               <button
                 onClick={() => handleAction('select')}
