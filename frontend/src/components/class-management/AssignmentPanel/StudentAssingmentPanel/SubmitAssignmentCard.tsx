@@ -36,9 +36,9 @@ export default function SubmitAssignmentCard({
         return;
       }
       // Optional: Validate file type (based on accept attribute in Input)
-      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/zip'];
-      if (!allowedTypes.includes(file.type)) {
-        alert("Invalid file type. Please upload a PDF, DOC, DOCX, TXT, or ZIP file.");
+      const allowedTypes = ['text/plain'];
+      if (!allowedTypes.includes(file.type) || !file.name.toLowerCase().endsWith('.txt')) {
+        alert("Invalid file type. Please upload a TXT file.");
         return;
       }
       setSubmissionData({
@@ -169,7 +169,7 @@ export default function SubmitAssignmentCard({
                         id="file"
                         type="file"
                         onChange={(e) => handleFileChange(e, setSubmissionData, submissionData)}
-                        accept=".pdf,.doc,.docx,.txt,.zip"
+                        accept=".txt"
                         className="w-full border-gray-600 dark:border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 text-gray-100 dark:text-gray-900"
                       />
                       {submissionData.file && (

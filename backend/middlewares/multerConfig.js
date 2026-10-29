@@ -56,18 +56,11 @@ const imageFileFilter = (req, file, cb) => {
 
 // File filter for documents
 const documentFileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "text/plain",
-  ];
-  if (allowedTypes.includes(file.mimetype)) {
+  const extension = path.extname(file.originalname).toLowerCase();
+  if (file.mimetype === "text/plain" && extension === ".txt") {
     cb(null, true);
   } else {
-    cb(new Error("Only document files (PDF, DOC, DOCX, XLS, XLSX, TXT) are allowed"), false);
+    cb(new Error("Only .txt files are allowed for document uploads"), false);
   }
 };
 
@@ -108,16 +101,8 @@ const fileFilter = (req, file, cb) => {
     "audio/mpeg", "audio/mp3", "audio/mp4", "audio/webm",
     "audio/ogg", "audio/wav", "audio/x-wav", "audio/aac",
     "audio/flac", "audio/webm;codecs=opus",
-    // Documents
-    "application/pdf",
-    "application/msword",
-    "application/docx",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "text/plain", "text/csv",
+    // Plain-text documents only
+    "text/plain",
     // Archives
     "application/zip", "application/x-zip-compressed",
     // Generic binary (for SMTE-encrypted blobs whose type may not be known)

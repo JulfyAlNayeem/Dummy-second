@@ -19,13 +19,6 @@ const ALLOWED_MIME_TYPES = {
     'image/svg+xml',
   ],
   document: [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'text/plain',
   ],
   audio: [
@@ -122,9 +115,7 @@ export async function validateFile(file, filePath, options = {}) {
       'image/png': ['.png'],
       'image/gif': ['.gif'],
       'image/webp': ['.webp'],
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt'],
     };
 
     if (mimeToExt[file.mimetype] && !mimeToExt[file.mimetype].includes(ext)) {

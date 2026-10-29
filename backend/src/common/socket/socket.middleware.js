@@ -18,13 +18,8 @@ export const socketAuthMiddleware = (socket, next) => {
     token = parsedCookies.accessToken || parsedCookies.access_token;
   }
   
-  // Fallback: try to get token from query string (for some clients)
-  if (!token && socket.handshake.query?.token) {
-    token = socket.handshake.query.token;
-  }
-  
   if (!token) {
-    logger.warn({ id: socket.id }, "⚠️  No accessToken found in cookies or query");
+    logger.warn({ id: socket.id }, "No accessToken found in cookies");
     return next(new Error('Authentication required'));
   }
 

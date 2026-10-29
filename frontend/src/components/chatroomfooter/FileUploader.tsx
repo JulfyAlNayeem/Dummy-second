@@ -11,7 +11,7 @@ const FileUploader = ({themeIndex, handleFileChange }: { themeIndex: number; han
         <input
           type="file"
           multiple
-          accept="audio/*,video/*,.pdf,.doc,.docx"
+          accept="audio/*,video/*,.txt"
           className="hidden"
           onChange={handleFileChange}
         />

@@ -27,7 +27,7 @@ router.post(
  * @route   POST /api/uploads/document
  * @desc    Upload a document file with security validation
  * @access  Private (requires authentication)
- * @limits  50MB, PDF/DOC/DOCX/XLS/XLSX/TXT only
+ * @limits  50MB, TXT only
  */
 router.post(
   '/document',

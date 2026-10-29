@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { BASE_URL } from '@/utils/baseUrls';
-import { defaultProfileImage } from '@/constant';
+import { defaultProfileImage, emojiColor } from '@/constant';
 import { addMessage, updateMessage, updateMessageReaction, addMessages, removeMessage, useConversation, checkScheduledDeletions } from '@/redux/slices/conversationSlice';
 import MessageCards from './MessageCards';
 import TypingIndicator from './TypingIndicator';
@@ -459,13 +459,15 @@ const MessageContainer = ({ messagesContainerRef, participant }: { messagesConta
     >
       <div>
         {isLoading && (
-          <div className="text-center siz-8 py-2 relative">
-            <div className="msg-loader">
-              <div className="circle"></div>
-              <div className="circle"></div>
-              <div className="circle"></div>
-              <div className="circle"></div>
-              <div className="circle"></div>
+          <div
+            className="message-loader-container"
+            style={{ '--loader-color': emojiColor[themeIndex] || emojiColor[0] } as React.CSSProperties}
+            aria-label="Loading messages"
+            role="status"
+          >
+            <div className="message-loader">
+              <span className="message-loader__ring" />
+              <span className="message-loader__ring" />
             </div>
           </div>
         )}

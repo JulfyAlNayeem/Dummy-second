@@ -26,6 +26,8 @@ backend/.env
 .env.copy
 .env.original
 
+review.txt
+
 # Node modules
 node_modules/
 **/node_modules/

@@ -1,9 +1,15 @@
 import jwt from "jsonwebtoken";
 import SiteSecurityMessage from "./models/siteSecurityMessageModel.js";
+import logger from "../../common/utils/logger.js";
 
 
 // JWT secret just for signing — keep this in .env
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
+const getJwtSecret = () => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is required for site verification");
+  }
+  return process.env.JWT_SECRET;
+};
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -42,10 +48,10 @@ export const createSiteSecurityMessage = async (req, res) => {
       data: savedMessage,
     });
   } catch (error) {
+    logger.error({ error: error.message }, "Create site security message failed");
     res.status(500).json({
       success: false,
       message: "Error creating site security message",
-      error: error.message,
     });
   }
 };
@@ -96,7 +102,7 @@ export const verifySiteSecurityMessage = async (req, res) => {
     }
 
     // Sign token and set cookie
-    const token = jwt.sign({ verified: true }, JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign({ verified: true }, getJwtSecret(), { expiresIn: "1d" });
     res.cookie("site_verified", token, COOKIE_OPTIONS);
 
     return res.status(200).json({
@@ -108,11 +114,10 @@ export const verifySiteSecurityMessage = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Verify site security error:", error);
+    logger.error({ error: error.message }, "Verify site security message failed");
     res.status(500).json({
       success: false,
       message: "Error verifying security Pin",
-      error: error.message,
     });
   }
 };
@@ -126,7 +131,7 @@ export const checkSiteVerification = async (req, res) => {
       return res.status(200).json({ verified: false });
     }
 
-    jwt.verify(token, JWT_SECRET);
+    jwt.verify(token, getJwtSecret());
     return res.status(200).json({ verified: true });
 
   } catch {
@@ -185,10 +190,10 @@ export const getSiteSecurityMessages = async (req, res) => {
       }))
     });
   } catch (error) {
+    logger.error({ error: error.message }, "Get site security messages failed");
     res.status(500).json({
       success: false,
       message: 'Error retrieving site security messages',
-      error: error.message
     });
   }
 };

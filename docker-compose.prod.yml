@@ -8,8 +8,8 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
-    ports:
-      - "27017:27017"
+    expose:
+      - "27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
@@ -25,12 +25,15 @@ services:
     image: redis:7-alpine
     container_name: dummy-redis-prod
     restart: always
-    ports:
-      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}", "--rename-command", "FLUSHALL", "", "--rename-command", "FLUSHDB", "", "--rename-command", "CONFIG", ""]
+    expose:
+      - "6379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", 'redis-cli -a "$${REDIS_PASSWORD}" ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -70,6 +73,7 @@ services:
       - .env.production        # ← loads ALL vars from file directly
     environment:
       LIVEKIT_URL: http://livekit:7880  # ← override only this one
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
       # because in .env.production LIVEKIT_URL=http://localhost:7880
       # but inside Docker it must be http://livekit:7880 (service name)
     volumes:

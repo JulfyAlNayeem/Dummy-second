@@ -536,6 +536,70 @@ textarea::-webkit-scrollbar-thumb {
   animation-delay: 960ms;
 }
 
+.message-loader-container {
+  --loader-color-soft: color-mix(in srgb, var(--loader-color) 75%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 6rem;
+  min-height: 6rem;
+  margin: 1rem auto;
+}
+
+.message-loader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  aspect-ratio: 1;
+}
+
+.message-loader__ring {
+  position: absolute;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 1rem var(--loader-color-soft));
+  animation: messageLoaderPulseOut 1.8s ease-in-out infinite;
+}
+
+.message-loader__ring:first-child {
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 0 0.65rem var(--loader-color);
+  animation-name: messageLoaderPulseIn;
+}
+
+.message-loader__ring:last-child {
+  width: calc(100% - 1.25rem);
+  height: calc(100% - 1.25rem);
+  box-shadow: 0 0 0 0 var(--loader-color);
+}
+
+@keyframes messageLoaderPulseIn {
+  0% {
+    box-shadow: inset 0 0 0 0.65rem var(--loader-color);
+    opacity: 1;
+  }
+  50%,
+  100% {
+    box-shadow: inset 0 0 0 0 var(--loader-color);
+    opacity: 0;
+  }
+}
+
+@keyframes messageLoaderPulseOut {
+  0%,
+  50% {
+    box-shadow: 0 0 0 0 var(--loader-color);
+    opacity: 0;
+  }
+  100% {
+    box-shadow: 0 0 0 0.65rem var(--loader-color);
+    opacity: 1;
+  }
+}
+
 @keyframes orbit {
   0% {
     transform: rotate(225deg);

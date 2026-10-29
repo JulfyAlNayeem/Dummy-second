@@ -13,4 +13,16 @@ validate: {
 },
 });
 
+export const authLimiter = rateLimit({
+windowMs: 15 * 60 * 1000,
+max: 20,
+standardHeaders: true,
+legacyHeaders: false,
+message: { message: "Too many authentication attempts. Please try again later." },
+validate: {
+  trustProxy: true,
+  xForwardedForHeader: 'X-Forwarded-For',
+},
+});
+
 
