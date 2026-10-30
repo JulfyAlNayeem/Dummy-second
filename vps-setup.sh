@@ -67,6 +67,9 @@ rtc:
   port_range_start: 50000
   port_range_end: 50200
   use_external_ip: true
+turn:
+  enabled: true
+  udp_port: 3478
 keys:
   your_api_key: your_api_secret
 logging:
@@ -90,6 +93,7 @@ sudo ufw allow 443/tcp   # HTTPS (for future SSL)
 sudo ufw allow 3001/tcp  # Backend (direct access if needed)
 sudo ufw allow 7880/tcp  # LiveKit HTTP/WebSocket
 sudo ufw allow 7881/tcp  # LiveKit TCP WebRTC
+sudo ufw allow 3478/udp  # LiveKit TURN/UDP relay
 sudo ufw allow 50000:50200/udp  # LiveKit UDP media
 sudo ufw --force enable
 echo "Firewall configured"
@@ -112,8 +116,10 @@ echo "3. Push to main branch to trigger deployment"
 echo ""
 echo "Key things to update in .env.production:"
 echo "  - YOUR_VPS_IP → your actual VPS IP address"
+echo "  - LIVEKIT_PUBLIC_URL → public browser WebSocket URL (wss://... in production)"
 echo "  - LIVEKIT_API_KEY and LIVEKIT_API_SECRET"
 echo "  - All SECRET values"
 echo ""
 echo "Key things to update in livekit.yaml:"
 echo "  - your_api_key: your_api_secret  (must match .env.production)"
+echo "  - TURN/UDP uses port 3478/udp; TURN/TLS needs a public domain and trusted certificate"

@@ -66,8 +66,14 @@ npm run dev:backend
 
 - **Frontend:** React 19, Vite, Redux Toolkit, React Router, Tailwind CSS
 - **Backend:** Node.js, Express, MongoDB/Mongoose, Redis, Socket.IO
-- **Calling:** LiveKit
+- **Calling:** LiveKit with relay-only ICE and embedded TURN/UDP (not supported in Tor Browser)
 - **Deployment:** Docker Compose and Nginx
+
+### Calling privacy and deployment
+
+The browser call client forces relay-only ICE, and the bundled LiveKit configuration enables TURN/UDP on port `3478`. Keep that port reachable in Docker, the host firewall, and the cloud firewall. Production also needs `LIVEKIT_PUBLIC_URL` set to a browser-reachable LiveKit WebSocket endpoint; use `wss://` for a secure deployment.
+
+Relay-only ICE avoids sending direct ICE candidates to other call participants, but the LiveKit/TURN operator can still observe a caller's network address. TURN/UDP may be blocked on restrictive networks; TURN/TLS requires a public TURN domain and trusted certificate and is not configured here. Tor Browser disables WebRTC, so browser calls will not work there; do not advise users to enable WebRTC to bypass that protection.
 
 ## Documentation
 

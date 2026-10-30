@@ -42,7 +42,7 @@ services:
 
   # LiveKit SFU — handles audio/video for calls up to 50 people
   # Runs as a separate process, backend talks to it via HTTP API
-  # Frontend connects directly via WebSocket on port 7880
+  # TURN/UDP relays all WebRTC media; clients are configured for relay-only ICE
   livekit:
     image: livekit/livekit-server:latest
     container_name: dummy-livekit-prod
@@ -50,6 +50,7 @@ services:
     ports:
       - "7880:7880"                          # HTTP/WebSocket — frontend connects here
       - "7881:7881"                          # TCP WebRTC fallback
+      - "3478:3478/udp"                      # Embedded TURN/UDP relay
       - "50000-50200:50000-50200/udp"        # UDP WebRTC media ports
     command: --config /etc/livekit/livekit.yaml
     volumes:
@@ -73,9 +74,9 @@ services:
       - .env.production        # ← loads ALL vars from file directly
     environment:
       LIVEKIT_URL: http://livekit:7880  # ← override only this one
+      LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:?Set LIVEKIT_PUBLIC_URL to the public LiveKit WebSocket URL}
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
-      # because in .env.production LIVEKIT_URL=http://localhost:7880
-      # but inside Docker it must be http://livekit:7880 (service name)
+      # LIVEKIT_PUBLIC_URL must be reachable by browsers (for example wss://livekit.example.com).
     volumes:
       - ./backend/uploads:/app/backend/uploads
     depends_on:

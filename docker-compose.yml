@@ -37,6 +37,27 @@ services:
     networks:
       - dummy-network
 
+  # LiveKit SFU with embedded TURN/UDP for relay-only ICE
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: dummy-livekit
+    restart: always
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "3478:3478/udp"
+      - "50000-50200:50000-50200/udp"
+    command: --config /etc/livekit/livekit.yaml
+    volumes:
+      - ./livekit.yaml:/etc/livekit/livekit.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:7880"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dummy-network
+
   # Backend Node.js Application
   backend:
     build:
@@ -60,10 +81,14 @@ services:
       ACCESS_TOKEN_SECRET: s3cr3tAcc3ssT0k3nK3y
       REFRESH_TOKEN_SECRET: s3cr3tR3fr3shT0k3nK3y
       ORIGIN_URL: http://localhost:3002
+      LIVEKIT_URL: http://livekit:7880
+      LIVEKIT_PUBLIC_URL: ws://localhost:7880
     depends_on:
       mongo:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      livekit:
         condition: service_healthy
     networks:
       - dummy-network

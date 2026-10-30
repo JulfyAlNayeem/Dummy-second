@@ -168,7 +168,11 @@ export const useLiveKitCall = (
     // In useLiveKitCall.ts — fix the connect function
     const connect = async () => {
       try {
-        await room.connect(livekitInfo.url, livekitInfo.token);
+        await room.connect(livekitInfo.url, livekitInfo.token, {
+          rtcConfig: {
+            iceTransportPolicy: "relay",
+          },
+        });
         await room.localParticipant.enableCameraAndMicrophone();
         setParticipants(Array.from(room.remoteParticipants.values()));
       } catch (error) {
