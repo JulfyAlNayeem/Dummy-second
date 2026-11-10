@@ -247,39 +247,40 @@ const ChatTabSidebar = ({ profileImage, name, isOpen, onClose }: { profileImage:
     { icon: Sparkles, title: "Word effects", onClick: () => { } },
   ];
 
-  const handleAudioCall = async () => {
-    try {
-      if (isGroup) {
-        const participantIds = fullConversation?.group?.participants?.map(p => p._id || p) || [];
-        await callContext.initiateGroupCall(conversationId, 'audio', participantIds);
-      } else {
-        const calleeId = participant?._id || participant;
-        await callContext.initiateCall(calleeId, 'audio', conversationId);
-      }
-      onClose(); // Close sidebar when call starts
-    } catch (error) {
-      toast.error('Failed to start audio call. Please check microphone permissions.');
-    }
-  };
+  // Calling buttons are intentionally disabled.
+  // const handleAudioCall = async () => {
+  //   try {
+  //     if (isGroup) {
+  //       const participantIds = fullConversation?.group?.participants?.map(p => p._id || p) || [];
+  //       await callContext.initiateGroupCall(conversationId, 'audio', participantIds);
+  //     } else {
+  //       const calleeId = participant?._id || participant;
+  //       await callContext.initiateCall(calleeId, 'audio', conversationId);
+  //     }
+  //     onClose();
+  //   } catch (error) {
+  //     toast.error('Failed to start audio call. Please check microphone permissions.');
+  //   }
+  // };
 
-  const handleVideoCall = async () => {
-    try {
-      if (isGroup) {
-        const participantIds = fullConversation?.group?.participants?.map(p => p._id || p) || [];
-        await callContext.initiateGroupCall(conversationId, 'video', participantIds);
-      } else {
-        const calleeId = participant?._id || participant;
-        await callContext.initiateCall(calleeId, 'video', conversationId);
-      }
-      onClose();
-    } catch (error) {
-      toast.error('Failed to start video call. Please check camera/microphone permissions.');
-    }
-  };
+  // const handleVideoCall = async () => {
+  //   try {
+  //     if (isGroup) {
+  //       const participantIds = fullConversation?.group?.participants?.map(p => p._id || p) || [];
+  //       await callContext.initiateGroupCall(conversationId, 'video', participantIds);
+  //     } else {
+  //       const calleeId = participant?._id || participant;
+  //       await callContext.initiateCall(calleeId, 'video', conversationId);
+  //     }
+  //     onClose();
+  //   } catch (error) {
+  //     toast.error('Failed to start video call. Please check camera/microphone permissions.');
+  //   }
+  // };
 
   const actionButtons = [
-    { icon: Phone, label: "Audio", onClick: handleAudioCall },
-    { icon: Video, label: "Video", onClick: handleVideoCall },
+    // { icon: Phone, label: "Audio", onClick: handleAudioCall },
+    // { icon: Video, label: "Video", onClick: handleVideoCall },
     { icon: User, label: "Profile", onClick: () => setCurrentView("profile") },
     { icon: BellOff, label: "Mute", onClick: () => { } },
   ];

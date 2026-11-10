@@ -37,36 +37,36 @@ const ChatTabNavbar = ({
   const profileImage = newParticipant?.image || (isGroup ? group?.image : otherParticipant?.image) || defaultProfileImage;
   const displayName = newParticipant?.name || (isGroup ? group?.name : otherParticipant?.name) || 'Unknown';
 
-  // Call handlers
-  const handleAudioCall = async () => {
-    try {
-      if (isGroup) {
-        const pIds = participants?.map(p => p._id || p) || [];
-        await callActions?.initiateGroupCall(convId, 'audio', pIds);
-      } else {
-        const calleeId = otherParticipant?._id;
-        if (!calleeId) return;
-        await callActions?.initiateCall(calleeId, 'audio', convId);
-      }
-    } catch (e) {
-      toast.error('Microphone permission required');
-    }
-  };
+  // Calling buttons are intentionally disabled.
+  // const handleAudioCall = async () => {
+  //   try {
+  //     if (isGroup) {
+  //       const pIds = participants?.map(p => p._id || p) || [];
+  //       await callActions?.initiateGroupCall(convId, 'audio', pIds);
+  //     } else {
+  //       const calleeId = otherParticipant?._id;
+  //       if (!calleeId) return;
+  //       await callActions?.initiateCall(calleeId, 'audio', convId);
+  //     }
+  //   } catch (e) {
+  //     toast.error('Microphone permission required');
+  //   }
+  // };
 
-  const handleVideoCall = async () => {
-    try {
-      if (isGroup) {
-        const pIds = participants?.map(p => p._id || p) || [];
-        await callActions?.initiateGroupCall(convId, 'video', pIds);
-      } else {
-        const calleeId = otherParticipant?._id;
-        if (!calleeId) return;
-        await callActions?.initiateCall(calleeId, 'video', convId);
-      }
-    } catch (e) {
-      toast.error('Camera/Microphone permission required');
-    }
-  };
+  // const handleVideoCall = async () => {
+  //   try {
+  //     if (isGroup) {
+  //       const pIds = participants?.map(p => p._id || p) || [];
+  //       await callActions?.initiateGroupCall(convId, 'video', pIds);
+  //     } else {
+  //       const calleeId = otherParticipant?._id;
+  //       if (!calleeId) return;
+  //       await callActions?.initiateCall(calleeId, 'video', convId);
+  //     }
+  //   } catch (e) {
+  //     toast.error('Camera/Microphone permission required');
+  //   }
+  // };
 
   useEffect(() => {
     if (!user?._id || !convId || !isGroup) return;
@@ -116,8 +116,8 @@ const ChatTabNavbar = ({
       </h1>
 
       <div className="ml-auto relative flex items-center gap-4">
-        {/* Audio Call Button */}
-        <button
+        {/* Calling buttons disabled intentionally. */}
+        {/* <button
           onClick={handleAudioCall}
           className={themeNavbarIcon(themeIndex, "cursor-pointer hover:opacity-80 transition-opacity")}
           title="Audio Call"
@@ -125,14 +125,13 @@ const ChatTabNavbar = ({
           <Phone className="size-5" />
         </button>
 
-        {/* Video Call Button */}
         <button
           onClick={handleVideoCall}
           className={themeNavbarIcon(themeIndex, "cursor-pointer hover:opacity-80 transition-opacity")}
           title="Video Call"
         >
           <Video className="size-5" />
-        </button>
+        </button> */}
 
         {isGroup && (
           <>

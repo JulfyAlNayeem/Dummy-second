@@ -41,45 +41,71 @@ const mapMimeTypeToMediaType = (mimeType) => {
   return "file";
 };
 
+function removeUnstoredUploads(files = []) {
+  for (const file of files) {
+    const filePath = file.path || path.join(process.cwd(), "uploads", file.filename);
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (error) {
+      console.error("Failed to remove unstored upload:", filePath, error);
+    }
+  }
+}
+
 /**
- * Helper to handle backend encryption for messages
- * If text is marked for backend encryption (has special marker), encrypt it.
- * Also handles SMTE transport-encrypted text: unwrap transport layer → re-encrypt with backend storage key.
+ * Apply the conversation's server-managed storage encryption policy.
  * @param {string} text - Message text
  * @param {string} conversationId - Conversation ID (needed for SMTE key lookup)
+ * @param {Object} conversation - Conversation with the authoritative encryption method
  * @returns {Promise<Object>} - { text, isBackendEncrypted }
  */
-async function handleBackendEncryption(text, conversationId) {
+async function handleBackendEncryption(text, conversationId, conversation) {
   if (!text || typeof text !== 'string') {
     return { text, plaintext: text, isBackendEncrypted: false };
   }
 
+  const isBackendMode = (conversation?.encryptionMethod || 'Backend') === 'Backend';
+
+  if (!isBackendMode) {
+    if (text.startsWith('__BACKEND_ENCRYPT__:') || isSMTEEncrypted(text)) {
+      throw new Error('Backend encryption payload does not match the conversation encryption method');
+    }
+
+    return {
+      text,
+      plaintext: isBackendEncrypted(text) ? null : text,
+      isBackendEncrypted: isBackendEncrypted(text),
+    };
+  }
+
+  let plaintext = text;
+
   // ── SMTE transport-encrypted text ──────────────────────────────────────
   if (isSMTEEncrypted(text) && conversationId) {
     try {
-      const plaintext = await decryptTransportText(text, conversationId);
-      const encrypted = await backendEncrypt(plaintext);
-      return { text: encrypted, plaintext, isBackendEncrypted: true };
+      plaintext = await decryptTransportText(text, conversationId);
     } catch (error) {
       console.error('❌ SMTE text decryption failed:', error.message);
       throw new Error(`SMTE transport decryption failed: ${error.message}`);
     }
+  } else if (text.startsWith('__BACKEND_ENCRYPT__:')) {
+    plaintext = text.substring('__BACKEND_ENCRYPT__:'.length);
+  } else if (isBackendEncrypted(text)) {
+    plaintext = await backendDecrypt(text);
   }
 
-  // ── Legacy marker ─────────────────────────────────────────────────────
-  if (text.startsWith('__BACKEND_ENCRYPT__:')) {
-    const plaintext = text.substring('__BACKEND_ENCRYPT__:'.length);
-    const encrypted = await backendEncrypt(plaintext);
-    return { text: encrypted, plaintext, isBackendEncrypted: true };
-  }
+  const encrypted = await backendEncrypt(plaintext);
+  return { text: encrypted, plaintext, isBackendEncrypted: true };
+}
 
-  // Already backend encrypted (at-rest BENC format)
-  if (isBackendEncrypted(text)) {
-    return { text, plaintext: null, isBackendEncrypted: true };
+async function encryptConversationPreview(conversation, text) {
+  if (
+    typeof text === 'string' &&
+    (conversation?.encryptionMethod || 'Backend') === 'Backend'
+  ) {
+    return backendEncrypt(text);
   }
-
-  // Plain text or frontend-only encrypted (ECDH/V1 — server doesn't touch these)
-  return { text, plaintext: text, isBackendEncrypted: false };
+  return text;
 }
 
 /**
@@ -158,20 +184,19 @@ export const sendFileMessage = async (req, res) => {
             smteEncryptedMap.set(entry.filename, entry);
           }
         } catch (e) {
-          console.warn('SMTE: failed to parse smteEncryptedFiles', e.message);
+          removeUnstoredUploads(req.files);
+          throw new Error(`Invalid SMTE encrypted file metadata: ${e.message}`);
         }
       }
 
-      // Detect Backend encryption mode from form field or text prefix
-      const isBackendMode = req.body.encryptionMethod === 'Backend'
-        || (resolvedText && (resolvedText.startsWith('__BACKEND_ENCRYPT__:') || isSMTEEncrypted(resolvedText)))
-        || !!smteEncryptedFilesRaw;
+      const isBackendMode =
+        (conversation.encryptionMethod || 'Backend') === 'Backend';
 
       for (const file of req.files) {
         let finalPath = `uploads/${file.filename}`;
         const diskPath = path.join(process.cwd(), finalPath);
 
-        if (smteEncryptedMap && smteEncryptedMap.has(file.originalname)) {
+        if (isBackendMode && smteEncryptedMap?.has(file.originalname)) {
           // SMTE-encrypted: decrypt transport layer → re-encrypt at rest
           try {
             const envelope = smteEncryptedMap.get(file.originalname);
@@ -181,6 +206,8 @@ export const sendFileMessage = async (req, res) => {
             console.log(`\u2705 SMTE+BENC: file encrypted at rest ${file.originalname}`);
           } catch (err) {
             console.error(`\u274c SMTE: file encrypt-at-rest failed for ${file.originalname}:`, err.message);
+            removeUnstoredUploads(req.files);
+            throw err;
           }
         } else if (isBackendMode) {
           // No transport encryption (HTTP / fallback) — still encrypt the raw file at rest
@@ -191,6 +218,8 @@ export const sendFileMessage = async (req, res) => {
             console.log(`\u2705 BENC: file encrypted at rest ${file.originalname}`);
           } catch (err) {
             console.error(`\u274c BENC: file encrypt-at-rest failed for ${file.originalname}:`, err.message);
+            removeUnstoredUploads(req.files);
+            throw err;
           }
         }
 
@@ -219,7 +248,11 @@ export const sendFileMessage = async (req, res) => {
     let isBackendEncryptedFlag = false;
     let previewText = resolvedText; // plaintext for last_message preview
     if (resolvedText) {
-      const encryptionResult = await handleBackendEncryption(resolvedText, resolvedConversationId);
+      const encryptionResult = await handleBackendEncryption(
+        resolvedText,
+        resolvedConversationId,
+        conversation
+      );
       processedText = encryptionResult.text;
       isBackendEncryptedFlag = encryptionResult.isBackendEncrypted;
       // Use decrypted plaintext when available; fall back to resolvedText
@@ -251,7 +284,7 @@ export const sendFileMessage = async (req, res) => {
     await updateConversationState(
       conversation,
       userId,
-      previewText || "[Media]"
+      await encryptConversationPreview(conversation, previewText || "[Media]")
     );
 
     const populatedMessage = await Message.findById(newMessage._id)
@@ -354,7 +387,11 @@ export const sendTextMessage = async ({
     });
     
     // Handle backend encryption if requested
-    const encryptionResult = await handleBackendEncryption(text, resolvedConversationId);
+    const encryptionResult = await handleBackendEncryption(
+      text,
+      resolvedConversationId,
+      conversation
+    );
     const processedText = encryptionResult.text;
     const isBackendEncryptedFlag = encryptionResult.isBackendEncrypted;
     const previewText = encryptionResult.plaintext ?? text;
@@ -378,7 +415,11 @@ export const sendTextMessage = async ({
 
     const newMessage = await Message.create(messageDataWithEncryption);
 
-    await updateConversationState(conversation, sender, previewText || "[Media]");
+    await updateConversationState(
+      conversation,
+      sender,
+      await encryptConversationPreview(conversation, previewText || "[Media]")
+    );
 
     const populatedMessage = await Message.findById(newMessage._id)
       .populate("sender", "username")
@@ -536,11 +577,19 @@ const sendEmojiCore = async ({
         (id) => id.toString() !== sender.toString()
       );
 
+    const emojiText = text || htmlEmoji || "";
+    const encryptionResult = await handleBackendEncryption(
+      emojiText,
+      resolvedConversationId,
+      conversation
+    );
+
     const newMessage = await Message.create({
       sender,
       receiver: resolvedReceiver,
       conversation: resolvedConversationId,
-      text: text || htmlEmoji || "",
+      text: encryptionResult.text,
+      isBackendEncrypted: encryptionResult.isBackendEncrypted,
       messageType: "text",
       htmlEmoji: htmlEmoji || null,
       emojiType: emojiType || null,
@@ -555,7 +604,10 @@ const sendEmojiCore = async ({
     await updateConversationState(
       conversation,
       sender,
-      text || htmlEmoji || "[Emoji]"
+      await encryptConversationPreview(
+        conversation,
+        encryptionResult.plaintext || "[Emoji]"
+      )
     );
 
     const populatedMessage = await Message.findById(newMessage._id)
@@ -569,6 +621,10 @@ const sendEmojiCore = async ({
         message: "Failed to populate message",
         clientTempId,
       };
+    }
+
+    if (populatedMessage.isBackendEncrypted && populatedMessage.text) {
+      populatedMessage.text = await handleBackendDecryption(populatedMessage.text);
     }
 
     // Add clientTempId to the response object (not stored in DB)
@@ -900,6 +956,20 @@ export const editMessageCore = async ({
       };
     }
 
+    const conversation = await Conversation.findById(message.conversation);
+    if (!conversation) {
+      return { success: false, message: "Conversation not found", clientTempId };
+    }
+
+    const encryptionResult =
+      text !== undefined
+        ? await handleBackendEncryption(
+            text,
+            message.conversation.toString(),
+            conversation
+          )
+        : null;
+
     // Validate emoji data if provided
     if (emojiType) {
       const validation = validateEmojiData({
@@ -916,8 +986,16 @@ export const editMessageCore = async ({
 
     // Store current state in editHistory
     if (message.text || message.htmlEmoji) {
+      let previousText = message.text;
+      if (
+        previousText &&
+        (conversation.encryptionMethod || "Backend") === "Backend" &&
+        !isBackendEncrypted(previousText)
+      ) {
+        previousText = await backendEncrypt(previousText);
+      }
       message.editHistory.push({
-        text: message.text,
+        text: previousText,
         htmlEmoji: message.htmlEmoji,
         emojiType: message.emojiType,
         editedAt: new Date(),
@@ -925,12 +1003,32 @@ export const editMessageCore = async ({
     }
 
     // Update message fields
-    if (text !== undefined) message.text = text;
+    if (encryptionResult) {
+      message.text = encryptionResult.text;
+      message.isBackendEncrypted = encryptionResult.isBackendEncrypted;
+    }
     if (htmlEmoji !== undefined) message.htmlEmoji = htmlEmoji || null;
     if (emojiType !== undefined) message.emojiType = emojiType || null;
     message.edited = true;
 
     await message.save();
+
+    if (encryptionResult) {
+      const latestMessage = await Message.findOne({
+        conversation: message.conversation,
+      })
+        .sort({ createdAt: -1 })
+        .select("_id");
+
+      if (latestMessage?._id.equals(message._id)) {
+        conversation.last_message.message = await encryptConversationPreview(
+          conversation,
+          encryptionResult.plaintext ?? text
+        );
+        conversation.last_message.timestamp = new Date();
+        await conversation.save();
+      }
+    }
 
     // Populate message
     const populatedMessage = await Message.findById(messageId)
@@ -1180,6 +1278,19 @@ export const sendReplyCore = async ({
     }
 
     const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return { success: false, message: "Conversation not found", clientTempId };
+    }
+
+    const replyText =
+      typeof text === "string" && text.trim() !== ""
+        ? text
+        : htmlEmoji || null;
+    const encryptionResult = await handleBackendEncryption(
+      replyText,
+      conversationId,
+      conversation
+    );
 
     const newMessage = await Message.create({
       conversation: conversationId,
@@ -1187,10 +1298,8 @@ export const sendReplyCore = async ({
       receiver: conversation.participants.find(
         (id) => id.toString() !== sender.toString()
       ), // Set receiver explicitly
-      text:
-        typeof text === "string" && text.trim() !== ""
-          ? text
-          : htmlEmoji || null,
+      text: encryptionResult.text,
+      isBackendEncrypted: encryptionResult.isBackendEncrypted,
       messageType: finalMessageType,
       media: mediaFiles,
       htmlEmoji: htmlEmoji || null,
@@ -1202,10 +1311,10 @@ export const sendReplyCore = async ({
 
     if (conversation) {
       conversation.last_message = {
-        message:
-          typeof text === "string" && text.trim() !== ""
-            ? text
-            : htmlEmoji || "[Media]",
+        message: await encryptConversationPreview(
+          conversation,
+          encryptionResult.plaintext ?? replyText ?? "[Media]"
+        ),
         sender,
         timestamp: new Date(),
       };
@@ -1602,4 +1711,3 @@ export const removeReaction = async ({ conversationId, messageId, userId }) => {
     return { success: false, message: error.message || "Server error" };
   }
 };
-

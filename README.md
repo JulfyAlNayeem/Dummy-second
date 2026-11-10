@@ -75,6 +75,10 @@ The browser call client forces relay-only ICE, and the bundled LiveKit configura
 
 Relay-only ICE avoids sending direct ICE candidates to other call participants, but the LiveKit/TURN operator can still observe a caller's network address. TURN/UDP may be blocked on restrictive networks; TURN/TLS requires a public TURN domain and trusted certificate and is not configured here. Tor Browser disables WebRTC, so browser calls will not work there; do not advise users to enable WebRTC to bypass that protection.
 
+### Default message encryption
+
+The default **Backend** conversation method encrypts message text, conversation previews, and uploaded files at rest using AES-256-GCM. The server manages the encryption keys and decrypts message text for delivery, so this is not end-to-end encryption and does not protect message contents from the running service. Backend-mode storage encryption is enforced by the server based on each conversation's saved method. Daily-rotated storage keys are retained in Redis so older stored messages remain decryptable; protect Redis and its backups accordingly.
+
 ## Documentation
 
 - [Product requirements](./PRD%20Overview.md)

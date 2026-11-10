@@ -1,8 +1,8 @@
 /**
  * Backend Server-Side Encryption Service
- * Uses rotating encryption keys stored in Redis
- * 5 keys are maintained, rotated daily at midnight
- * Decryption attempts all 5 keys for backward compatibility
+ * Uses rotating encryption keys stored in Redis.
+ * Keys rotate daily and are retained so stored data remains decryptable.
+ * Decryption attempts historical keys for backward compatibility.
  */
 
 import crypto from 'crypto';
@@ -11,7 +11,6 @@ import logger from '../src/common/utils/logger.js';
 
 const REDIS_KEY_PREFIX = 'backend_encryption_keys';
 const REDIS_CURRENT_KEY_INDEX = 'backend_encryption_current_index';
-const KEY_ARRAY_SIZE = 5;
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32; // 256 bits
 const IV_LENGTH = 16; // 128 bits for GCM
@@ -28,7 +27,7 @@ function generateEncryptionKey() {
 
 /**
  * Initialize encryption keys in Redis if not present
- * Creates 5 keys with the current (newest) at index 0
+ * Creates an initial key if none exist.
  */
 export async function initializeEncryptionKeys() {
   try {
@@ -40,11 +39,7 @@ export async function initializeEncryptionKeys() {
     if (existingKeys.length === 0) {
       logger.info('🔐 Initializing backend encryption keys...');
       
-      // Generate 5 initial keys
-      const keys = [];
-      for (let i = 0; i < KEY_ARRAY_SIZE; i++) {
-        keys.push(generateEncryptionKey());
-      }
+      const keys = [generateEncryptionKey()];
       
       // Store in Redis (index 0 is the current/newest key)
       await redis.del(REDIS_KEY_PREFIX); // Clear any partial data
@@ -107,7 +102,7 @@ export async function getAllEncryptionKeys() {
 }
 
 /**
- * Rotate encryption keys - add new key at index 0, remove oldest
+ * Rotate encryption keys - add a new key at index 0 and retain all older keys.
  * Called daily at midnight via cron job
  * @returns {Promise<Object>} - Rotation result
  */
@@ -123,9 +118,6 @@ export async function rotateEncryptionKeys() {
     
     // Add new key at the beginning (left push)
     await redis.lPush(REDIS_KEY_PREFIX, newKey);
-    
-    // Keep only the 5 most recent keys (remove oldest if > 5)
-    await redis.lTrim(REDIS_KEY_PREFIX, 0, KEY_ARRAY_SIZE - 1);
     
     // Get updated keys
     const updatedKeys = await redis.lRange(REDIS_KEY_PREFIX, 0, -1);
@@ -283,7 +275,7 @@ export async function getEncryptionStats() {
     return {
       totalKeys: keys.length,
       currentKeyIndex: parseInt(currentIndex || '0'),
-      maxKeys: KEY_ARRAY_SIZE,
+      keyRetention: 'indefinite',
       algorithm: ALGORITHM,
       keyLength: KEY_LENGTH * 8, // bits
       keysInitialized: keys.length > 0
@@ -293,7 +285,7 @@ export async function getEncryptionStats() {
     return {
       totalKeys: 0,
       currentKeyIndex: 0,
-      maxKeys: KEY_ARRAY_SIZE,
+      keyRetention: 'indefinite',
       error: error.message
     };
   }

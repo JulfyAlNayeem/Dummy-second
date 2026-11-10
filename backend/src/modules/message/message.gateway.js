@@ -363,7 +363,7 @@ export class MessageGateway {
 
       const userId = socket.user.id;
       const result = await editMessageCore({
-        userId,
+        sender: userId,
         messageId,
         text,
         htmlEmoji,
