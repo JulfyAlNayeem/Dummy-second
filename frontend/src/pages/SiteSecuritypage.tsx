@@ -28,15 +28,6 @@ const SiteSecuritypage = (): JSX.Element => {
 
   const [verifySiteSecurityMessage, { isLoading: isVerifyingMessages, error: verifyError, isSuccess }]: any = useVerifySecurityMessageMutation();
 
-  if (isCheckingFeatureSettings) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#e3f9ff]">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#40a5c9] border-t-transparent" />
-      </div>
-    );
-  }
-  if (!siteSecurityEnabled) return null;
-
   // Redirect logged-in users to their first conversation
   useEffect(() => {
     if (isCheckingFeatureSettings) return;
@@ -109,6 +100,15 @@ const SiteSecuritypage = (): JSX.Element => {
       setIsLaunched(false);
     }
   }, [clickCount]);
+
+  if (isCheckingFeatureSettings) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#e3f9ff]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#40a5c9] border-t-transparent" />
+      </div>
+    );
+  }
+  if (!siteSecurityEnabled) return null;
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#e3f9ff] relative">
