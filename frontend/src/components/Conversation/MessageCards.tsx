@@ -22,6 +22,10 @@ import { useDispatch } from "react-redux";
 import TextMessageCard from "../chatroom/TextMessageCard";
 import ActionMenu from "../chatroom/ActionMenu";
 import { SmilePlus } from "lucide-react";
+import { decryptFile as decryptFileV1 } from "@/utils/messageEncryptionV1";
+
+const isV1EncryptedMedia = (media: any): boolean =>
+  /^V1ENC_[a-f0-9]{32}\.bin$/i.test(media?.filename || "");
 
 const MessageCards = ({
   msg,
@@ -46,8 +50,114 @@ const MessageCards = ({
   const [isReactionPickerOpen, setIsReactionPickerOpen] =
     useState<boolean>(false);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState<boolean>(false);
+  const [decryptedMediaByUrl, setDecryptedMediaByUrl] = useState<any>({});
+  const [shouldLoadMedia, setShouldLoadMedia] = useState<boolean>(false);
   const messageRef = useRef<HTMLDivElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const node = messageRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setShouldLoadMedia(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoadMedia(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const objectUrls: string[] = [];
+    const encryptedMedia = [
+      ...(msg.media || []),
+      ...(msg.replyTo?.media || []),
+    ].filter(
+      (media) =>
+        isV1EncryptedMedia(media) &&
+        media.url &&
+        !media.url.startsWith("blob:")
+    );
+
+    setDecryptedMediaByUrl({});
+    if (encryptedMedia.length === 0 || !conversationId || !shouldLoadMedia) {
+      return () => {
+        active = false;
+      };
+    }
+
+    const decryptMedia = async () => {
+      const entries = await Promise.all(
+        encryptedMedia.map(async (media) => {
+          try {
+            const response = await fetch(resolveMediaUrl(media.url));
+            if (!response.ok) {
+              throw new Error(`Attachment download failed (${response.status})`);
+            }
+
+            const decrypted = await decryptFileV1(
+              await response.arrayBuffer(),
+              conversationId
+            );
+            if (!active) return [media.url, { url: "" }];
+            const url = URL.createObjectURL(
+              new Blob([decrypted.data], { type: decrypted.type })
+            );
+            objectUrls.push(url);
+            const type = decrypted.type.startsWith("image/")
+              ? "image"
+              : decrypted.type.startsWith("video/")
+                ? "video"
+                : decrypted.type.startsWith("audio/")
+                  ? "audio"
+                  : "file";
+
+            return [
+              media.url,
+              {
+                url,
+                type,
+                filename: decrypted.filename,
+                size: decrypted.size,
+              },
+            ];
+          } catch (error) {
+            console.error("Failed to decrypt V1 attachment", error);
+            return [media.url, { url: "", decryptFailed: true }];
+          }
+        })
+      );
+
+      if (active) {
+        setDecryptedMediaByUrl(Object.fromEntries(entries));
+      }
+    };
+
+    decryptMedia();
+    return () => {
+      active = false;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [conversationId, msg.media, msg.replyTo?.media, shouldLoadMedia]);
+
+  const getDisplayedMedia = (mediaItems: any[] = []) =>
+    mediaItems.map((media) => {
+      if (!isV1EncryptedMedia(media)) return media;
+      const decryptedMedia = decryptedMediaByUrl[media.url];
+      return decryptedMedia
+        ? { ...media, ...decryptedMedia }
+        : { ...media, url: "" };
+    });
 
   // Use reactions from msg prop (from Redux store)
   const messageReactions = msg.reactions || {};
@@ -230,6 +340,12 @@ const MessageCards = ({
     !msg.replyTo &&
     !msg.media?.length &&
     msg.emojiType !== "custom";
+  const displayedMedia = getDisplayedMedia(msg.media || []);
+  const displayedReplyMedia = getDisplayedMedia(msg.replyTo?.media || []);
+  const hasAttachmentDecryptionFailure = [
+    ...displayedMedia,
+    ...displayedReplyMedia,
+  ].some((media) => media.decryptFailed);
 
   return (
     <div className="max-w-[90%] relative ">
@@ -272,22 +388,26 @@ const MessageCards = ({
               replyTo={
                 sender._id === msg.replyTo.sender?._id ? "yourself" : "someone"
               }
-              replyType={msg.replyTo.messageType}
+              replyType={
+                displayedReplyMedia[0]?.type || msg.replyTo.messageType
+              }
               repliedMessage={
                 msg.replyTo.messageType === "text"
                   ? `${msg.replyTo.text}`
-                  : msg.replyTo.media?.[0]?.url
-                    ? resolveMediaUrl(msg.replyTo.media[0].url)
+                  : displayedReplyMedia[0]?.url
+                    ? resolveMediaUrl(displayedReplyMedia[0].url)
                     : null
               }
-              contentType={msg.messageType}
+              repliedName={displayedReplyMedia[0]?.filename}
+              contentType={displayedMedia[0]?.type || msg.messageType}
               content={
                 msg.messageType === "text"
                   ? msg.text
-                  : msg.media?.[0]?.url
-                    ? resolveMediaUrl(msg.media[0].url)
+                  : displayedMedia[0]?.url
+                    ? resolveMediaUrl(displayedMedia[0].url)
                     : null
               }
+              contentName={displayedMedia[0]?.filename}
             />
           )}
           {/* Always show emoji image if media is present and type is image */}
@@ -299,6 +419,11 @@ const MessageCards = ({
           {/* If emojiType is standard, show htmlEmoji */}
           {msg.emojiType === "standard" && (
             <span className="text-2xl">{msg.htmlEmoji}</span>
+          )}
+          {hasAttachmentDecryptionFailure && (
+            <div role="alert" className="text-sm text-red-300">
+              Could not decrypt attachment. Verify the V1 conversation key.
+            </div>
           )}
           {/* If not emoji, show text and other media as usual */}
           {(!msg.media?.length ||
@@ -335,17 +460,17 @@ const MessageCards = ({
                     />
                   </div>
                 )}
-                {msg.media?.length > 0 &&
-                  msg.media.some((media) => media.type === "image") && (
+                {displayedMedia.length > 0 &&
+                  displayedMedia.some((media) => media.type === "image") && (
                     <div className="mt-2">
                       <ImageDisplay
-                        img={msg.media
+                        img={displayedMedia
                           .filter((media) => media.type === "image")
                           .map((media) => ({ img: resolveMediaUrl(media.url) }))}
                         onImageClick={(index) =>
                           onImageClick(
                             index,
-                            msg.media
+                            displayedMedia
                               .filter((media) => media.type === "image")
                               .map((media) => ({
                                 img: resolveMediaUrl(media.url),
@@ -355,33 +480,34 @@ const MessageCards = ({
                       />
                     </div>
                   )}
-                {msg.media?.length > 0 &&
-                  msg.media.some((media) => media.type === "audio") && (
+                {displayedMedia.length > 0 &&
+                  displayedMedia.some((media) => media.type === "audio") && (
                     <div className="mt-2">
                       <VoiceMessageCard
                         duration={
-                          msg.media.find((media) => media.type === "audio")
+                          displayedMedia.find((media) => media.type === "audio")
                             ?.duration || "0:00"
                         }
-                        audioUrl={resolveMediaUrl(msg.media.find((media) => media.type === "audio")?.url)}
+                        audioUrl={resolveMediaUrl(displayedMedia.find((media) => media.type === "audio")?.url)}
                       />
                     </div>
                   )}
-                {msg.media?.length > 0 &&
-                  msg.media.some((media) => media.type === "video") && (
+                {displayedMedia.length > 0 &&
+                  displayedMedia.some((media) => media.type === "video") && (
                     <div className="mt-2">
                       <VideoMessageCard
-                        videoUrl={resolveMediaUrl(msg.media.find((media) => media.type === "video")?.url)}
+                        videoUrl={resolveMediaUrl(displayedMedia.find((media) => media.type === "video")?.url)}
                       />
                     </div>
                   )}
-                {msg.media?.length > 0 &&
-                  msg.media.some((media) => media.type === "file") && (
+                {displayedMedia.length > 0 &&
+                  displayedMedia.some((media) => media.type === "file") && (
                     <div className="mt-2">
                       <ReplyCard
                         isOwnMessage={isOwnMessage}
                         contentType="file"
-                        content={resolveMediaUrl(msg.media.find((media) => media.type === "file")?.url)}
+                        content={resolveMediaUrl(displayedMedia.find((media) => media.type === "file")?.url)}
+                        contentName={displayedMedia.find((media) => media.type === "file")?.filename}
                         themeIndex={themeIndex}
                       />
                     </div>

@@ -52,6 +52,24 @@ function removeUnstoredUploads(files = []) {
   }
 }
 
+function isV1EncryptedUpload(file) {
+  if (!/^V1ENC_[a-f0-9]{32}\.bin$/i.test(file.originalname || "")) {
+    return false;
+  }
+
+  const filePath = file.path || path.join(process.cwd(), "uploads", file.filename);
+  const descriptor = fs.openSync(filePath, "r");
+  try {
+    const header = Buffer.alloc(4);
+    return (
+      fs.readSync(descriptor, header, 0, header.length, 0) === header.length &&
+      header.equals(Buffer.from([0x56, 0x31, 0x46, 0x31]))
+    );
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
 /**
  * Apply the conversation's server-managed storage encryption policy.
  * @param {string} text - Message text
@@ -164,6 +182,17 @@ export const sendFileMessage = async (req, res) => {
     // console.log("sendFileMessage: Conversation ID:", resolvedConversationId);
 
     await verifyUserInConversation(conversation, userId);
+
+    if (
+      (conversation.encryptionMethod || "Backend") === "V1" &&
+      req.files?.length > 0 &&
+      req.files.some((file) => !isV1EncryptedUpload(file))
+    ) {
+      removeUnstoredUploads(req.files);
+      return res.status(400).json({
+        message: "V1 attachments must be encrypted before upload",
+      });
+    }
 
     const otherParticipant = conversation.participants.find(
       (id) => id.toString() !== userId.toString()
@@ -1425,6 +1454,18 @@ export const replyMessage = async (req, res) => {
   // Handle media files if present
   let mediaFiles = [];
   if (req?.files?.length > 0) {
+    const conversation = await Conversation.findById(conversationId);
+    if (
+      (conversation?.encryptionMethod || "Backend") === "V1" &&
+      req.files.some((file) => !isV1EncryptedUpload(file))
+    ) {
+      removeUnstoredUploads(req.files);
+      return res.status(400).json({
+        message: "V1 attachments must be encrypted before upload",
+        clientTempId,
+      });
+    }
+
     mediaFiles = req.files.map((file) => ({
       url: `uploads/${file.filename}`, // Use server-side filename, matching sendFileMessage
       type: mapMimeTypeToMediaType(file.mimetype),

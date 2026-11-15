@@ -15,7 +15,11 @@ import { BsFillSendCheckFill } from "react-icons/bs";
 import { store } from "@/redux/store";
 import CryptoJS from "crypto-js";
 import { encryptMessage as encryptMessageECDH } from '@/utils/messageEncryption';
-import { encryptMessage as encryptMessageV1 } from '@/utils/messageEncryptionV1';
+import {
+  encryptFiles as encryptFilesV1,
+  encryptMessage as encryptMessageV1,
+} from '@/utils/messageEncryptionV1';
+import toast from 'react-hot-toast';
 
 // Pick the right encrypt function based on the conversation's encryption method.
 // Returns null for Backend/SMTE (server handles it) or if method is unknown.
@@ -23,13 +27,27 @@ const encryptForMethod = async (conversationId: string, text: string, userId: st
   const method = localStorage.getItem(`encryptionMethod_${conversationId}`) || 'Backend';
   if (method === 'ECDH') {
     const enc = await encryptMessageECDH(conversationId, text, userId, receiver);
-    return JSON.stringify(enc);
+    if (!enc) {
+      throw new Error('ECDH encryption returned no payload');
+    }
+    const payload = JSON.stringify(enc);
+    if (!payload) {
+      throw new Error('ECDH encryption returned an invalid payload');
+    }
+    return payload;
   }
   if (method === 'V1') {
-    return encryptMessageV1(text, conversationId) as string;
+    const payload = encryptMessageV1(text, conversationId);
+    if (typeof payload !== 'string' || !payload) {
+      throw new Error('V1 encryption returned an invalid payload');
+    }
+    return payload;
   }
-  // Backend/SMTE — encryption handled in sendTextMessage path, no client-side encrypt needed
-  return null;
+  if (method === 'Backend') {
+    // Backend/SMTE — encryption handled in sendTextMessage path.
+    return null;
+  }
+  throw new Error(`Unsupported encryption method: ${method}`);
 };
 import { storeOwnMessagePlaintext, hasKeys } from '@/utils/messageEncryptionHelperFuction';
 import { verifyKeyOnServer } from '@/utils/socketEncryptionUtils';
@@ -131,6 +149,15 @@ const SendMessage = forwardRef(
       if (!user || !inputValue.trim()) {
         return false;
       }
+      let encryptedPayload: string;
+      try {
+        const enc = await encryptForMethod(conversationId, inputValue.trim(), user._id, receiver);
+        encryptedPayload = enc ?? inputValue.trim();
+      } catch {
+        toast.error('Message was not edited because encryption failed. Please try again.');
+        return false;
+      }
+
       const tempMessageId = `temp-edit-${Date.now()}`;
       const optimisticMessage = createOptimisticMessage(
         conversationId,
@@ -157,16 +184,6 @@ const SendMessage = forwardRef(
       dispatch(updateMessage({ messageId: editingMessage.messageId, message: optimisticMessage }));
 
       try {
-        // If editing text-only, try to encrypt the new text
-        let encryptedPayload = inputValue.trim();
-        try {
-          const enc = await encryptForMethod(conversationId, inputValue.trim(), user._id, receiver);
-          // send only the encryption metadata (ciphertext, iv, salt)
-          encryptedPayload = enc ?? inputValue.trim();
-        } catch (e) {
-          console.warn('Edit: encryption failed, sending plaintext', e);
-        }
-
         let socketSuccess = false;
         if (socket) {
           await new Promise((resolve, reject) => {
@@ -249,6 +266,32 @@ const SendMessage = forwardRef(
 
       const tempMessageId = `temp-${Date.now()}`;
       const hasFiles = selectedImages.length > 0 || selectedFiles.length > 0;
+      const method = localStorage.getItem(`encryptionMethod_${conversationId}`) || 'Backend';
+      let filesToUpload = [...selectedImages, ...selectedFiles];
+      let encryptedReplyText = inputValue.trim() ? inputValue.trim() : '';
+
+      try {
+        if (method === 'V1') {
+          if (encryptedReplyText) {
+            encryptedReplyText = encryptMessageV1(encryptedReplyText, conversationId);
+          }
+          if (hasFiles) {
+            filesToUpload = await encryptFilesV1(filesToUpload, conversationId);
+          }
+        } else if (!hasFiles && encryptedReplyText) {
+          const encrypted = await encryptForMethod(
+            conversationId,
+            encryptedReplyText,
+            user._id,
+            receiver
+          );
+          encryptedReplyText = encrypted ?? encryptedReplyText;
+        }
+      } catch {
+        toast.error('Reply was not sent because encryption failed. Please try again.');
+        return false;
+      }
+
       const media = [...selectedImages, ...selectedFiles].map((file) => ({
         url: '',
         type: file.type.startsWith("image/") ? "image" :
@@ -264,18 +307,6 @@ const SendMessage = forwardRef(
         messageType: replyingMessage.messageType || 'text',
         media: replyingMessage.media || [],
       };
-
-      // Try to encrypt reply text when there are no files
-      let encryptedReplyText = inputValue.trim() ? inputValue.trim() : '';
-      if (!hasFiles && encryptedReplyText) {
-        try {
-          const enc = await encryptForMethod(conversationId, encryptedReplyText, user._id, receiver);
-          // send only the encryption metadata
-          if (enc) encryptedReplyText = enc;
-        } catch (e) {
-          console.warn('Reply: encryption failed, sending plaintext', e);
-        }
-      }
 
       const optimisticMessage = createReplyMessage(
         conversationId,
@@ -293,13 +324,6 @@ const SendMessage = forwardRef(
       optimisticMessage.plainText = inputValue.trim() || null;
       optimisticMessage.status = 'sending';
       dispatch(addMessage(optimisticMessage));
-      // DEBUG TRACE: log optimistic message and outgoing payload so we can see what is stored locally and what we'll send
-      try {
-        console.log('SendMessage: optimisticMessage', optimisticMessage);
-        console.log('SendMessage: outgoingPayload', { conversationId, receiver, text: typeof encryptedReplyText === 'string' ? encryptedReplyText : inputValue, tempMessageId });
-      } catch (e) {
-        console.warn('SendMessage: logging failed', e);
-      }
       setInputValue('');
       setSelectedImages([]);
       setSelectedFiles([]);
@@ -310,13 +334,15 @@ const SendMessage = forwardRef(
       if (hasFiles) {
         try {
           const formData = new FormData();
-          formData.append('text', inputValue.trim() || '');
+          formData.append('text', encryptedReplyText);
           formData.append('messageType', optimisticMessage.messageType);
           formData.append('clientTempId', tempMessageId);
-          formData.append('replyTo', JSON.stringify(replyTo));
+          if (method !== 'V1') {
+            formData.append('replyTo', JSON.stringify(replyTo));
+          }
           formData.append('htmlEmoji', '');
           formData.append('emojiType', '');
-          [...selectedImages, ...selectedFiles].forEach((file) => {
+          filesToUpload.forEach((file) => {
             if (file instanceof File) {
               formData.append('media', file);
             }
@@ -507,6 +533,20 @@ const SendMessage = forwardRef(
   const tempMessageId = `temp-${Date.now()}`;
   let optimisticMessage;
   const hasFiles = selectedImages.length > 0 || selectedFiles.length > 0;
+  const method = localStorage.getItem(`encryptionMethod_${conversationId}`) || 'Backend';
+  let filesToUpload = [...selectedImages, ...selectedFiles];
+  let encryptedFileCaption = inputValue;
+  if (hasFiles && method === 'V1') {
+    try {
+      encryptedFileCaption = inputValue
+        ? encryptMessageV1(inputValue, conversationId)
+        : '';
+      filesToUpload = await encryptFilesV1(filesToUpload, conversationId);
+    } catch {
+      toast.error('Attachment was not sent because encryption failed. Please try again.');
+      return false;
+    }
+  }
   // make sure encryptedText exists in this outer scope so it can be
   // referenced later when sending via socket
   let encryptedText = inputValue;
@@ -563,17 +603,26 @@ const SendMessage = forwardRef(
           } else if (method === 'V1') {
             // V1 encryption returns plain string
             encryptedText = encryptMessageV1(textMessage, conversationId);
+            if (typeof encryptedText !== 'string' || !encryptedText) {
+              throw new Error('V1 encryption returned an invalid payload');
+            }
             console.log('🔐 Encrypted with V1 method');
-          } else {
+          } else if (method === 'ECDH') {
             // ECDH encryption returns {ciphertext, iv, salt}
             const enc = await encryptMessageECDH(conversationId, textMessage, user._id, receiver);
+            if (!enc) {
+              throw new Error('ECDH encryption returned no payload');
+            }
             // send only the encryption metadata (remove plaintext from payload)
             const { plaintext, ...encPayload } = enc;
             encryptedText = JSON.stringify(encPayload);
             console.log('🔐 Encrypted with ECDH method');
+          } else {
+            throw new Error(`Unsupported encryption method: ${method}`);
           }
         } catch (e) {
-          console.warn('Send: encryption failed, sending plaintext', e);
+          toast.error('Message was not sent because encryption failed. Please try again.');
+          return false;
         }
         optimisticMessage = createTextMessage(
           conversationId,
@@ -601,10 +650,10 @@ const SendMessage = forwardRef(
           const formData = new FormData();
 
           // ── SMTE: encrypt text accompanying files ──
-          const method = localStorage.getItem(`encryptionMethod_${conversationId}`) || 'Backend';
           // effectiveConvId: never use 'new' — it has no Redis SMTE key on the server
           const effectiveConvId = conversationId && conversationId !== 'new' ? conversationId : null;
-          let textToSend = inputValue;
+          let textToSend =
+            method === 'V1' ? encryptedFileCaption : inputValue;
           if (method === 'Backend' && inputValue) {
             if (isSmteAvailable() && socket && effectiveConvId) {
               textToSend = await smteEncryptText(socket, effectiveConvId, inputValue);
@@ -616,7 +665,7 @@ const SendMessage = forwardRef(
 
           // Append receiver when no real conversationId exists yet
           if (!effectiveConvId) formData.append('receiver', receiver);
-          const files = [...selectedImages, ...selectedFiles];
+          const files = filesToUpload;
           if (files.length === 0) {
             throw new Error("No valid files selected");
           }

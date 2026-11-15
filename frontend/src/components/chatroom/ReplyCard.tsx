@@ -6,7 +6,7 @@ import { themeSenderMessage, themeReceiverMessage } from "@/lib/themeUtils";
 import { useConversation } from "@/redux/slices/conversationSlice";
 import { cn } from "@/lib/utils";
 
-const renderMedia = (type: string, value: any): JSX.Element | null => {
+const renderMedia = (type: string, value: any, filename?: string): JSX.Element | null => {
   if (!value) return null;
 
   const urlPattern = /(https?:\/\/[^\s]+)/g;
@@ -60,7 +60,7 @@ const renderMedia = (type: string, value: any): JSX.Element | null => {
     case "file":
       return (
         <div className="bg-gray-700 text-white text-sm px-3 py-2 rounded-md flex justify-between items-center">
-          <span className="truncate max-w-[70%]">{value.split("/").pop()}</span>
+          <span className="truncate max-w-[70%]">{filename || value.split("/").pop()}</span>
           <a
             href={value}
             target="_blank"
@@ -82,8 +82,10 @@ interface ReplyCardProps {
   replyTo?: string;
   replyType?: string;
   repliedMessage?: any;
+  repliedName?: string;
   contentType: string;
   content: any;
+  contentName?: string;
   themeIndex: number;
 }
 
@@ -92,8 +94,10 @@ const ReplyCard = ({
   replyTo,
   replyType,
   repliedMessage,
+  repliedName,
   contentType,
   content,
+  contentName,
   themeIndex,
 }: ReplyCardProps): JSX.Element => {
   return (
@@ -113,12 +117,12 @@ const ReplyCard = ({
       {/* Replied message preview */}
       {replyType && repliedMessage && (
         <div className="border-l-4 text-blue-200 border-white pl-2 mb-2">
-          {renderMedia(replyType, repliedMessage)}
+          {renderMedia(replyType, repliedMessage, repliedName)}
         </div>
       )}
 
       {/* Current message content */}
-      <div>{renderMedia(contentType, content)}</div>
+      <div>{renderMedia(contentType, content, contentName)}</div>
     </div>
   );
 };

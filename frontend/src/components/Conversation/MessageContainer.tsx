@@ -503,9 +503,7 @@ const MessageContainer = ({ messagesContainerRef, participant }: { messagesConta
                   msg={msg}
                   isOwnMessage={isOwnMessage}
                   themeIndex={themeIndex}
-                  onImageClick={(index) => handleImageClick(index, msg.media
-                    .filter(media => media.type === "image")
-                    .map(media => ({ img: `${BASE_URL}${media.url}` })))}
+                  onImageClick={(index, images) => handleImageClick(index, images)}
                   buttonRef={buttonRefs.current[msg._id || msg.clientTempId]}
                   openDialog={(messageId, messageText, buttonRect) => openDialog(messageId, messageText, buttonRect)}
                   retryMessage={() => retryMessage(msg.clientTempId)}
