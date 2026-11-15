@@ -4,15 +4,25 @@ import { useUserAuth } from '../../context-reducer/UserAuthContext';
 import { useGetAllConversationsQuery } from '@/redux/api/conversationApi';
 import Loading from '@/pages/Loading';
 import { useCheckSiteVerificationQuery } from '@/redux/api/securityApi';
+import { useGetPublicAdminSettingsQuery } from '@/redux/api/admin/settingsApi';
 
 const PublicRoute = ({ children }: any): JSX.Element => {
     const { user }: any = useUserAuth();
     const { data: conversations, isLoading }: any = useGetAllConversationsQuery(user?._id, { 
     skip: !user?._id 
   });
+  const {
+    data: featureSettings,
+    isLoading: isCheckingFeatureSettings,
+  } = useGetPublicAdminSettingsQuery(undefined);
+  const siteSecurityEnabled =
+    featureSettings?.features?.site_security_check !== false;
   
   // Check site verification against server cookie (not localStorage)
-  const { data: verifyData, isLoading: isCheckingVerification } = useCheckSiteVerificationQuery(undefined);
+  const { data: verifyData, isLoading: isCheckingVerification } =
+    useCheckSiteVerificationQuery(undefined, {
+      skip: isCheckingFeatureSettings || !siteSecurityEnabled,
+    });
   const isVerified = verifyData?.verified === true;
 
   // If user is logged in, redirect to their conversations
@@ -32,12 +42,14 @@ const PublicRoute = ({ children }: any): JSX.Element => {
     // Don't redirect to / as that would cause a loop
     return <Navigate to="/e2ee/t/empty" replace />;
   }
+
+  if (isCheckingFeatureSettings) return <Loading />;
   
   // While checking verification with server, show loader
-  if (isCheckingVerification) return <Loading />;
+  if (siteSecurityEnabled && isCheckingVerification) return <Loading />;
 
   // If user is not verified, redirect to home (verification page)
-  if (!isVerified) {
+  if (siteSecurityEnabled && !isVerified) {
     return <Navigate to="/" replace />;
   }
 

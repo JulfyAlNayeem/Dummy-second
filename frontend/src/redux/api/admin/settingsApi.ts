@@ -11,8 +11,13 @@ export const settingsApi = createApi({
     baseUrl: `${BASE_URL}admin`,
     credentials: "include",
   }),
-  tagTypes: ["AdminSettings"],
+  tagTypes: ["AdminSettings", "PublicSettings"],
   endpoints: (builder) => ({
+    getPublicAdminSettings: builder.query({
+      query: () => "/public-settings",
+      providesTags: ["PublicSettings"],
+    }),
+
     // Get Admin Settings
     getAdminSettings: builder.query({
       query: () => "/settings",
@@ -26,7 +31,7 @@ export const settingsApi = createApi({
         method: "PUT",
         body: settings,
       }),
-      invalidatesTags: ["AdminSettings"],
+      invalidatesTags: ["AdminSettings", "PublicSettings"],
       // Optimistic update
       async onQueryStarted(patch, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
@@ -44,4 +49,8 @@ export const settingsApi = createApi({
   }),
 })
 
-export const { useGetAdminSettingsQuery, useUpdateAdminSettingsMutation } = settingsApi
+export const {
+  useGetAdminSettingsQuery,
+  useGetPublicAdminSettingsQuery,
+  useUpdateAdminSettingsMutation,
+} = settingsApi

@@ -14,6 +14,7 @@ const adminSettingsSchema = new Schema(
       video_calling: { type: Boolean, default: true },
       group_creation: { type: Boolean, default: true },
       user_registration: { type: Boolean, default: true },
+      site_security_check: { type: Boolean, default: true },
     },
 
     // Security Settings

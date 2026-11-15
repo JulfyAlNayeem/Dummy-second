@@ -5,6 +5,7 @@ import {
   getPendingApprovals,
   approveUser,
   rejectUser,
+  getPublicAdminSettings,
   getAdminSettings,
   updateAdminSettings,
   suspendUser,
@@ -31,6 +32,7 @@ router.post("/approvals/:approvalId/approve", requireAdmin, approveUser)
 router.post("/approvals/:approvalId/reject", requireAdmin, rejectUser)
 
 // Settings
+router.get("/public-settings", getPublicAdminSettings)
 router.get("/settings", requireAdmin, getAdminSettings)
 router.put("/settings", requireSuperAdmin, updateAdminSettings)
 

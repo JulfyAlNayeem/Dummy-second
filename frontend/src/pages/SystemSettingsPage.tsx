@@ -59,7 +59,7 @@ export default function SystemSettings(): JSX.Element {
                     Feature Controls
                   </CardTitle>
                   <CardDescription className="text-gray-300 dark:text-gray-600">
-                    Enable or disable chat features
+                    Enable or disable application features
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -72,7 +72,9 @@ export default function SystemSettings(): JSX.Element {
                         htmlFor={key}
                         className="capitalize text-white dark:text-gray-900"
                       >
-                        {key.replace(/_/g, " ")}
+                        {key === "site_security_check"
+                          ? "Site Security Check"
+                          : key.replace(/_/g, " ")}
                       </Label>
                       <Switch
                         id={key}

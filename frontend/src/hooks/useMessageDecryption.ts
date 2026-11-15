@@ -23,6 +23,8 @@ export const useMessageDecryption = (messageText: any, conversationId: any, send
     // Check for SMTE format (should already be decrypted by server, but guard)
     if (text.startsWith('SMTE:') && text.split(':').length === 5) return true;
 
+    if (text.startsWith('V1E2:')) return true;
+
     // Check for ECDH format (JSON with ciphertext)
     try {
       const parsed = JSON.parse(text);
@@ -83,7 +85,11 @@ export const useMessageDecryption = (messageText: any, conversationId: any, send
         // Handle V1 decryption
         if (method === 'V1' && messageText.length > 20) {
           try {
-            const decrypted = decryptMessageV1(messageText, conversationId);
+            const decrypted = await decryptMessageV1(
+              messageText,
+              conversationId,
+              senderId
+            );
             if (isMounted && decrypted && decrypted !== messageText) {
               console.log('🔓 Decrypted with V1 method');
               setDecryptedText(decrypted);

@@ -1,208 +1,427 @@
-// @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../ui/card";
 import { Label } from "../../ui/label";
 import { Alert, AlertDescription, AlertTitle } from "../../ui/alert";
-import { Settings, Save, RotateCcw, HelpCircle } from "lucide-react";
-import { getCorruptionSettings, saveCorruptionSettings } from '@/utils/corruptionUtils';
+import {
+  Download,
+  HelpCircle,
+  Save,
+  Shuffle,
+  Sparkles,
+  Upload,
+} from "lucide-react";
 import toast from "react-hot-toast";
+import {
+  generateV1Secret,
+  exportV1SettingsBundle,
+  getV1SenderSettings,
+  importV1SettingsBundle,
+  saveV1SenderSettings,
+} from "@/utils/messageEncryptionV1";
 
-const CorruptionSettings = ({ conversationId }: { conversationId: string }): JSX.Element => {
-  const [position1, setPosition1] = useState<number>(5);
-  const [position2, setPosition2] = useState<number>(9);
-  const [position3, setPosition3] = useState<number>(15);
-  const [position4, setPosition4] = useState<number>(20);
-  const [position5, setPosition5] = useState<number>(30);
-  const [keyLength, setKeyLength] = useState<number>(4);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [showSettings, setShowSettings] = useState<boolean>(false);
+type Props = {
+  conversationId: string;
+  currentUserId: string;
+  otherUserId?: string;
+};
+
+const DEFAULT_POSITIONS = [5, 9, 15, 20, 30];
+
+function randomPositions(count: number): number[] {
+  if (!Number.isInteger(count) || count < 1 || count > 100) {
+    throw new Error("Choose between 1 and 100 positions");
+  }
+  const selected = new Set<number>();
+  const range = Math.max(64, count);
+  while (selected.size < count) {
+    const bytes = crypto.getRandomValues(new Uint32Array(1));
+    selected.add((bytes[0] % range) + 1);
+  }
+  return [...selected].sort((a, b) => a - b);
+}
+
+const CorruptionSettings = ({
+  conversationId,
+  currentUserId,
+  otherUserId,
+}: Props): JSX.Element => {
+  const [senderId, setSenderId] = useState(currentUserId || "");
+  const [configId, setConfigId] = useState("");
+  const [key1, setKey1] = useState("");
+  const [key2, setKey2] = useState("");
+  const [positionsText, setPositionsText] = useState(
+    DEFAULT_POSITIONS.join(", ")
+  );
+  const [positionCount, setPositionCount] = useState(DEFAULT_POSITIONS.length);
+  const [keyLength, setKeyLength] = useState(4);
+  const [showSecrets, setShowSecrets] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+
+  const isOwnSettings = useMemo(
+    () => String(senderId) === String(currentUserId),
+    [senderId, currentUserId]
+  );
 
   useEffect(() => {
-    if (conversationId) {
-      const settings = getCorruptionSettings(conversationId);
-      if (settings.positions.length >= 5) {
-        setPosition1(settings.positions[0] || 5);
-        setPosition2(settings.positions[1] || 9);
-        setPosition3(settings.positions[2] || 15);
-        setPosition4(settings.positions[3] || 20);
-        setPosition5(settings.positions[4] || 30);
-      }
-      setKeyLength(settings.keyLength || 4);
-    }
-  }, [conversationId]);
+    setSenderId(currentUserId || "");
+  }, [currentUserId]);
 
-  const handleSaveSettings = (): void => {
+  useEffect(() => {
+    if (!conversationId || !senderId) return;
+    const settings = getV1SenderSettings(conversationId, senderId);
+    setConfigId(settings?.configId || "");
+    setKey1(settings?.key1 || "");
+    setKey2(settings?.key2 || "");
+    setPositionsText(settings?.positions.join(", ") || DEFAULT_POSITIONS.join(", "));
+    setPositionCount(settings?.positions.length || DEFAULT_POSITIONS.length);
+    setKeyLength(settings?.keyLength || 4);
+  }, [conversationId, senderId]);
+
+  const handleGeneratePositions = (): void => {
+    try {
+      const positions = randomPositions(Number(positionCount));
+      setPositionsText(positions.join(", "));
+      if (isOwnSettings) setConfigId("");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleGenerateSecrets = (): void => {
+    setKey1(generateV1Secret());
+    setKey2(generateV1Secret());
+    setConfigId("");
+  };
+
+  const handleSave = (): void => {
+    if (!conversationId || !senderId) {
+      toast.error("Enter the sender's user ID first");
+      return;
+    }
+    if (!isOwnSettings && !configId.trim()) {
+      toast.error("Enter the sender's configuration ID");
+      return;
+    }
+
+    const positions = positionsText
+      .split(",")
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isInteger(value) && value > 0);
+    if (positions.length !== Number(positionCount)) {
+      toast.error("Position count must match the number of valid positions");
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const positions = [
-        parseInt(position1) || 0,
-        parseInt(position2) || 0,
-        parseInt(position3) || 0,
-        parseInt(position4) || 0,
-        parseInt(position5) || 0
-      ].filter(p => p > 0);
-
-      if (positions.length === 0) {
-        toast.error('Please enter at least one valid position', { duration: 5000 });
-        return;
-      }
-
-      const length = parseInt(keyLength) || 4;
-      if (length < 1 || length > 20) {
-        toast.error('Corruption key length must be between 1 and 20', { duration: 5000 });
-        return;
-      }
-
-      saveCorruptionSettings(conversationId, positions, length);
-      toast.success('Corruption settings saved! All participants must use the same settings.', { duration: 5000 });
+      const savedConfigId = saveV1SenderSettings(conversationId, senderId, {
+        configId: configId.trim() || undefined,
+        key1,
+        key2,
+        positions,
+        keyLength: Number(keyLength),
+      });
+      setConfigId(savedConfigId);
+      toast.success(
+        isOwnSettings
+          ? "Your V1 settings are saved. Share them out of band with participants."
+          : "The other user's V1 settings are saved for decrypting their messages."
+      );
     } catch (error: any) {
-      console.error('Failed to save corruption settings:', error);
-      toast.error('Failed to save settings: ' + error.message, { duration: 5000 });
+      toast.error(error.message || "Failed to save V1 settings");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleReset = (): void => {
-    setPosition1(5);
-    setPosition2(9);
-    setPosition3(15);
-    setPosition4(20);
-    setPosition5(30);
-    setKeyLength(4);
-    saveCorruptionSettings(conversationId, [5, 9, 15, 20, 30], 4);
-    toast.success('Reset to default settings', { duration: 3000 });
+  const handleExport = (): void => {
+    try {
+      const bundle = exportV1SettingsBundle(conversationId, senderId);
+      const blob = new Blob([bundle], { type: "application/json" });
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const safeConversationId = conversationId.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const safeSenderId = senderId.replace(/[^a-zA-Z0-9_-]/g, "_");
+      anchor.href = objectUrl;
+      anchor.download = `v1-settings-${safeConversationId}-${safeSenderId}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to export V1 settings");
+    }
+  };
+
+  const handleImport = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const imported = importV1SettingsBundle(
+        await file.text(),
+        conversationId
+      );
+      setSenderId(imported.senderId);
+      setConfigId(imported.settings.configId);
+      setKey1(imported.settings.key1);
+      setKey2(imported.settings.key2);
+      setPositionsText(imported.settings.positions.join(", "));
+      setPositionCount(imported.settings.positions.length);
+      setKeyLength(imported.settings.keyLength);
+      toast.success(`Imported settings for sender ${imported.senderId}`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to import V1 settings");
+    } finally {
+      setIsImporting(false);
+      event.target.value = "";
+    }
   };
 
   return (
     <Card className="bg-gray-800 border-gray-700">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-base text-white flex items-center gap-2">
-              <Settings className="h-4 w-4 text-blue-400" />
-              Corruption Settings
-            </CardTitle>
-            <CardDescription className="text-gray-300">
-              Customize obfuscation layer positions and key length
-            </CardDescription>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSettings(!showSettings)}
-            className="text-blue-400"
-          >
-            {showSettings ? 'Hide' : 'Show'}
-          </Button>
-        </div>
+        <CardTitle className="text-base text-white">V1 Two-Layer Secrets</CardTitle>
+        <CardDescription className="text-gray-300">
+          Configure secrets and corruption settings per message sender.
+        </CardDescription>
       </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert className="bg-blue-900/20 border-blue-500/30">
+          <HelpCircle className="h-4 w-4 text-blue-400" />
+          <AlertTitle className="text-white">How this setting is used</AlertTitle>
+          <AlertDescription className="text-sm text-gray-300">
+            V1 encrypts with secret 1, inserts the configured random strings,
+            then encrypts again with secret 2. Secrets and positions are stored
+            only in this browser; exchange the sender's secrets, configuration
+            ID, positions, and string length out of band.
+          </AlertDescription>
+        </Alert>
 
-      {showSettings && (
-        <CardContent className="space-y-4">
-          <Alert className="bg-blue-900/20 border-blue-500/30">
-            <HelpCircle className="h-4 w-4" style={{ color: '#60a5fa' }} />
-            <AlertTitle className="text-white">How It Works</AlertTitle>
-            <AlertDescription className="text-sm text-gray-300">
-              Random keys will be inserted at these positions in encrypted text. 
-              All participants must use the same settings to decrypt messages correctly.
-            </AlertDescription>
-          </Alert>
-
-          <div className="space-y-3">
-            <Label className="text-white">Corruption Positions (1-5 values)</Label>
-            <div className="grid grid-cols-5 gap-2">
-              <input
-                type="number"
-                value={position1}
-                onChange={(e) => setPosition1(e.target.value)}
-                placeholder="Pos 1"
-                min="1"
-                className="p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-              />
-              <input
-                type="number"
-                value={position2}
-                onChange={(e) => setPosition2(e.target.value)}
-                placeholder="Pos 2"
-                min="1"
-                className="p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-              />
-              <input
-                type="number"
-                value={position3}
-                onChange={(e) => setPosition3(e.target.value)}
-                placeholder="Pos 3"
-                min="1"
-                className="p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-              />
-              <input
-                type="number"
-                value={position4}
-                onChange={(e) => setPosition4(e.target.value)}
-                placeholder="Pos 4"
-                min="1"
-                className="p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-              />
-              <input
-                type="number"
-                value={position5}
-                onChange={(e) => setPosition5(e.target.value)}
-                placeholder="Pos 5"
-                min="1"
-                className="p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-              />
-            </div>
-            <p className="text-xs text-gray-400">
-              Example: 2, 7, 9, 20, 30 (positions where random keys will be inserted)
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-white">Corruption Key Length (1-20)</Label>
-            <input
-              type="number"
-              value={keyLength}
-              onChange={(e) => setKeyLength(e.target.value)}
-              placeholder="Key Length"
-              min="1"
-              max="20"
-              className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-gray-400">
-              Length of random text added at each position (default: 4)
-            </p>
-          </div>
-
-          <div className="flex gap-2">
+        <div className="space-y-2">
+          <Label className="text-white">Settings belong to sender user ID</Label>
+          <div className="flex flex-wrap gap-2">
             <Button
-              onClick={handleSaveSettings}
-              disabled={isSaving}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Settings'}
-            </Button>
-            <Button
-              onClick={handleReset}
               variant="outline"
+              size="sm"
+              onClick={() => setSenderId(currentUserId || "")}
               className="border-gray-700"
             >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset
+              My settings
             </Button>
+            {otherUserId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSenderId(otherUserId)}
+                className="border-gray-700"
+              >
+                Other participant
+              </Button>
+            )}
           </div>
+          <input
+            type="text"
+            value={senderId}
+            onChange={(event) => setSenderId(event.target.value.trim())}
+            placeholder="Enter user ID"
+            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+          />
+          <p className="text-xs text-gray-400">
+            {isOwnSettings
+              ? "These are your outgoing-message settings."
+              : "Enter this sender's matching secrets and settings to read their messages."}
+          </p>
+        </div>
 
-          <Alert className="bg-yellow-900/20 border-yellow-500/30">
-            <AlertTitle className="text-yellow-400">⚠️ Important</AlertTitle>
-            <AlertDescription className="text-yellow-200 text-xs">
-              All participants in this conversation must use the exact same corruption settings.
-              Share these values with others or messages won't decrypt correctly!
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      )}
+        <div className="space-y-2">
+          <Label className="text-white">Configuration ID</Label>
+          <input
+            type="text"
+            value={configId}
+            onChange={(event) => setConfigId(event.target.value.trim())}
+            readOnly={isOwnSettings}
+            placeholder={
+              isOwnSettings
+                ? "Generated when you save your settings"
+                : "Enter the sender's configuration ID"
+            }
+            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+          />
+          <p className="text-xs text-gray-400">
+            Share this ID with the secrets so recipients can select the right settings version.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-white">Secret 1 (minimum 16 characters)</Label>
+          <input
+            type={showSecrets ? "text" : "password"}
+            value={key1}
+            onChange={(event) => {
+              setKey1(event.target.value);
+              if (isOwnSettings) setConfigId("");
+            }}
+            autoComplete="new-password"
+            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-white">Secret 2 (minimum 16 characters)</Label>
+          <input
+            type={showSecrets ? "text" : "password"}
+            value={key2}
+            onChange={(event) => {
+              setKey2(event.target.value);
+              if (isOwnSettings) setConfigId("");
+            }}
+            autoComplete="new-password"
+            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowSecrets((visible) => !visible)}
+            className="border-gray-700"
+          >
+            {showSecrets ? "Hide secrets" : "Show secrets"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleGenerateSecrets}
+            disabled={!isOwnSettings}
+            className="border-gray-700"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate two secrets
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label className="text-white">Position count (1-100)</Label>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={positionCount}
+              onChange={(event) => {
+                setPositionCount(Number(event.target.value));
+                if (isOwnSettings) setConfigId("");
+              }}
+              className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-white">String length (1-64)</Label>
+            <input
+              type="number"
+              min="1"
+              max="64"
+              value={keyLength}
+              onChange={(event) => {
+                setKeyLength(Number(event.target.value));
+                if (isOwnSettings) setConfigId("");
+              }}
+              className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-white">Corruption positions</Label>
+          <textarea
+            value={positionsText}
+            onChange={(event) => {
+              const value = event.target.value;
+              setPositionsText(value);
+              if (isOwnSettings) setConfigId("");
+              const count = value
+                .split(",")
+                .filter((position) => position.trim().length > 0).length;
+              setPositionCount(count);
+            }}
+            rows={3}
+            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+            placeholder="Example: 5, 9, 15, 20, 30"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGeneratePositions}
+            className="border-gray-700"
+          >
+            <Shuffle className="h-4 w-4 mr-2" />
+            Generate random positions
+          </Button>
+          <p className="text-xs text-gray-400">
+            Positions beyond a message's encrypted text length are skipped.
+          </p>
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="w-full bg-green-600 hover:bg-green-700"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          {isSaving ? "Saving..." : "Save sender settings"}
+        </Button>
+
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={handleImport}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={!getV1SenderSettings(conversationId, senderId)}
+            className="border-gray-700"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export JSON
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => importInputRef.current?.click()}
+            disabled={isImporting}
+            className="border-gray-700"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {isImporting ? "Importing..." : "Import JSON"}
+          </Button>
+        </div>
+
+        <Alert className="bg-yellow-900/20 border-yellow-500/30">
+          <AlertTitle className="text-yellow-400">Important</AlertTitle>
+          <AlertDescription className="text-yellow-200 text-xs">
+            The recipient must enter the sender's exact secrets, positions, and
+            string length. Older configurations remain saved locally so older
+            messages can still be decrypted when those settings are available.
+            Exported JSON contains the encryption secrets; protect it like a
+            password and share it only through a trusted channel.
+          </AlertDescription>
+        </Alert>
+      </CardContent>
     </Card>
   );
 };

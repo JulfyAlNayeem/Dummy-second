@@ -5,14 +5,21 @@ import { useVerifySecurityMessageMutation } from "@/redux/api/securityApi";
 import { useNavigate } from "react-router-dom";
 import { useUserAuth } from "@/context-reducer/UserAuthContext";
 import { useGetAllConversationsQuery } from "@/redux/api/conversationApi";
+import { useGetPublicAdminSettingsQuery } from "@/redux/api/admin/settingsApi";
 import { toast } from "react-hot-toast";
 import { Rocket } from "lucide-react";
 
 const SiteSecuritypage = (): JSX.Element => {
   const navigate = useNavigate();
   const { user }: any = useUserAuth();
+  const {
+    data: featureSettings,
+    isLoading: isCheckingFeatureSettings,
+  } = useGetPublicAdminSettingsQuery(undefined);
+  const siteSecurityEnabled =
+    featureSettings?.features?.site_security_check !== false;
   const { data: conversations }: any = useGetAllConversationsQuery(user?._id, { 
-    skip: !user?._id 
+    skip: isCheckingFeatureSettings || !siteSecurityEnabled || !user?._id
   });
   const [clickCount, setClickCount] = useState<number>(0);
   const [isLaunched, setIsLaunched] = useState<boolean>(false);
@@ -21,8 +28,23 @@ const SiteSecuritypage = (): JSX.Element => {
 
   const [verifySiteSecurityMessage, { isLoading: isVerifyingMessages, error: verifyError, isSuccess }]: any = useVerifySecurityMessageMutation();
 
+  if (isCheckingFeatureSettings) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#e3f9ff]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#40a5c9] border-t-transparent" />
+      </div>
+    );
+  }
+  if (!siteSecurityEnabled) return null;
+
   // Redirect logged-in users to their first conversation
   useEffect(() => {
+    if (isCheckingFeatureSettings) return;
+    if (!siteSecurityEnabled) {
+      navigate("/signin", { replace: true });
+      return;
+    }
+
     if (user && conversations) {
       const firstConvId = conversations[0]?._id;
       if (firstConvId) {
@@ -32,7 +54,13 @@ const SiteSecuritypage = (): JSX.Element => {
         navigate('/e2ee/t/empty');
       }
     }
-  }, [user, conversations, navigate]);
+  }, [
+    user,
+    conversations,
+    navigate,
+    isCheckingFeatureSettings,
+    siteSecurityEnabled,
+  ]);
 
   const handleClick = (): void => {
     setClickCount((prev) => {

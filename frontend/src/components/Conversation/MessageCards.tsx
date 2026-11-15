@@ -23,6 +23,7 @@ import TextMessageCard from "../chatroom/TextMessageCard";
 import ActionMenu from "../chatroom/ActionMenu";
 import { SmilePlus } from "lucide-react";
 import { decryptFile as decryptFileV1 } from "@/utils/messageEncryptionV1";
+import { useMessageDecryption } from "@/hooks/useMessageDecryption";
 
 const isV1EncryptedMedia = (media: any): boolean =>
   /^V1ENC_[a-f0-9]{32}\.bin$/i.test(media?.filename || "");
@@ -44,6 +45,20 @@ const MessageCards = ({
 }: any): JSX.Element => {
   const { isGroup }: any = useConversation();
   const { socket, user }: any = useUserAuth();
+  const { decryptedText: decryptedReplyContent } = useMessageDecryption(
+    msg.replyTo ? msg.text : null,
+    conversationId,
+    sender?._id || msg.sender?._id || msg.sender,
+    user?._id,
+    false
+  );
+  const { decryptedText: decryptedQuotedText } = useMessageDecryption(
+    msg.replyTo?.text,
+    conversationId,
+    msg.replyTo?.sender?._id || msg.replyTo?.sender,
+    user?._id,
+    false
+  );
   const dispatch = useDispatch();
   const [isStatusVisible, setIsStatusVisible] =
     useState<boolean>(isLastMessage);
@@ -393,7 +408,7 @@ const MessageCards = ({
               }
               repliedMessage={
                 msg.replyTo.messageType === "text"
-                  ? `${msg.replyTo.text}`
+                  ? decryptedQuotedText || `${msg.replyTo.text}`
                   : displayedReplyMedia[0]?.url
                     ? resolveMediaUrl(displayedReplyMedia[0].url)
                     : null
@@ -402,7 +417,7 @@ const MessageCards = ({
               contentType={displayedMedia[0]?.type || msg.messageType}
               content={
                 msg.messageType === "text"
-                  ? msg.text
+                  ? decryptedReplyContent || msg.plainText || msg.text
                   : displayedMedia[0]?.url
                     ? resolveMediaUrl(displayedMedia[0].url)
                     : null

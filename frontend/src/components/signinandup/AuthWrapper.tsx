@@ -5,20 +5,29 @@ import { Link, useLocation } from "react-router-dom";
 import { FaKey } from "react-icons/fa";
 import PasswordGenerator from "./PasswordGenerator";
 import { useCheckSiteVerificationQuery } from "@/redux/api/securityApi";
+import { useGetPublicAdminSettingsQuery } from "@/redux/api/admin/settingsApi";
 
 // AuthWrapper: provides a split-screen layout (illustration left, form right)
 // Keeps existing colors but changes layout to match the requested pattern.
 const AuthWrapper = ({ children, pageName, welcomeMessage }: any): JSX.Element => {
-  const { data, isLoading } = useCheckSiteVerificationQuery(undefined);
+  const {
+    data: featureSettings,
+    isLoading: isLoadingFeatureSettings,
+  } = useGetPublicAdminSettingsQuery(undefined);
+  const siteSecurityEnabled =
+    featureSettings?.features?.site_security_check !== false;
+  const { data, isLoading } = useCheckSiteVerificationQuery(undefined, {
+    skip: isLoadingFeatureSettings || !siteSecurityEnabled,
+  });
   const isVerified = data?.verified === true;
   const location = useLocation();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   // While checking cookie with server, render nothing (brief)
-  if (isLoading) return <></>;
+  if (isLoadingFeatureSettings || (siteSecurityEnabled && isLoading)) return <></>;
 
   // If user hasn't passed the site-security check, show that page
-  if (!isVerified) {
+  if (siteSecurityEnabled && !isVerified) {
     return <SiteSecuritypage />;
   }
 

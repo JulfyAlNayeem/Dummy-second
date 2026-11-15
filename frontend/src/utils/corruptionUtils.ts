@@ -39,15 +39,73 @@ export function saveCorruptionSettings(conversationId: any, positions: any, keyL
 // Generate random corruption key of specified length
 export function generateCorruptionKey(length: number = DEFAULT_KEY_LENGTH): any {
   const randomBytes = crypto.getRandomValues(new Uint8Array(length));
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   let result = '';
   for (let i = 0; i < length; i++) {
-    // Generate random alphanumeric character
-    const char = String.fromCharCode(
-      randomBytes[i] % 26 + (randomBytes[i] % 2 === 0 ? 65 : 97)
-    );
-    result += char;
+    result += alphabet[randomBytes[i] & 63];
   }
   return result;
+}
+
+export function addConfiguredCorruption(
+  encryptedMessage: string,
+  positions: number[],
+  keyLength: number,
+  corruptionKeys: string[]
+): string {
+  const activePositions = positions
+    .map((position, index) => ({ position, index }))
+    .filter(({ position }) => position < encryptedMessage.length);
+  let corruptedMessage = "";
+  let lastIndex = 0;
+
+  activePositions.forEach(({ position, index }) => {
+    corruptedMessage += encryptedMessage.substring(lastIndex, position);
+    corruptedMessage += corruptionKeys[index] || generateCorruptionKey(keyLength);
+    lastIndex = position;
+  });
+
+  return corruptedMessage + encryptedMessage.substring(lastIndex);
+}
+
+export function removeConfiguredCorruption(
+  corruptedMessage: string,
+  positions: number[],
+  keyLength: number
+): string {
+  let activeCount = -1;
+  let originalLength = -1;
+
+  for (let candidateCount = 0; candidateCount <= positions.length; candidateCount++) {
+    const candidateLength = corruptedMessage.length - candidateCount * keyLength;
+    const matchingCount = positions.filter((position) => position < candidateLength).length;
+    if (matchingCount === candidateCount) {
+      activeCount = candidateCount;
+      originalLength = candidateLength;
+      break;
+    }
+  }
+
+  if (activeCount < 0 || originalLength < 0) {
+    throw new Error("Corruption settings do not match this message");
+  }
+
+  const activePositions = positions.filter((position) => position < originalLength);
+  let cleanMessage = "";
+  let sourceIndex = 0;
+  let corruptedIndex = 0;
+
+  for (const position of activePositions) {
+    const segmentLength = position - sourceIndex;
+    cleanMessage += corruptedMessage.substring(
+      corruptedIndex,
+      corruptedIndex + segmentLength
+    );
+    corruptedIndex += segmentLength + keyLength;
+    sourceIndex = position;
+  }
+
+  return cleanMessage + corruptedMessage.substring(corruptedIndex);
 }
 
 // Add corruption to encrypted message

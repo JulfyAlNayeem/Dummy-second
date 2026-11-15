@@ -37,7 +37,7 @@ const encryptForMethod = async (conversationId: string, text: string, userId: st
     return payload;
   }
   if (method === 'V1') {
-    const payload = encryptMessageV1(text, conversationId);
+    const payload = await encryptMessageV1(text, conversationId, userId);
     if (typeof payload !== 'string' || !payload) {
       throw new Error('V1 encryption returned an invalid payload');
     }
@@ -273,7 +273,11 @@ const SendMessage = forwardRef(
       try {
         if (method === 'V1') {
           if (encryptedReplyText) {
-            encryptedReplyText = encryptMessageV1(encryptedReplyText, conversationId);
+            encryptedReplyText = await encryptMessageV1(
+              encryptedReplyText,
+              conversationId,
+              user._id
+            );
           }
           if (hasFiles) {
             filesToUpload = await encryptFilesV1(filesToUpload, conversationId);
@@ -539,7 +543,7 @@ const SendMessage = forwardRef(
   if (hasFiles && method === 'V1') {
     try {
       encryptedFileCaption = inputValue
-        ? encryptMessageV1(inputValue, conversationId)
+        ? await encryptMessageV1(inputValue, conversationId, user._id)
         : '';
       filesToUpload = await encryptFilesV1(filesToUpload, conversationId);
     } catch {
@@ -602,7 +606,11 @@ const SendMessage = forwardRef(
             }
           } else if (method === 'V1') {
             // V1 encryption returns plain string
-            encryptedText = encryptMessageV1(textMessage, conversationId);
+            encryptedText = await encryptMessageV1(
+              textMessage,
+              conversationId,
+              user._id
+            );
             if (typeof encryptedText !== 'string' || !encryptedText) {
               throw new Error('V1 encryption returned an invalid payload');
             }

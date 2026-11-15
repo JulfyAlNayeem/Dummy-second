@@ -185,6 +185,26 @@ export const rejectUser = async (req, res) => {
 }
 
 // Feature Controls
+export const getPublicAdminSettings = async (req, res) => {
+  try {
+    const settings = await AdminSettings.findOne()
+      .select("features.site_security_check")
+      .lean()
+
+    res.json({
+      features: {
+        site_security_check:
+          settings?.features?.site_security_check !== false,
+      },
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch public feature settings",
+      error: error.message,
+    })
+  }
+}
+
 export const getAdminSettings = async (req, res) => {
   try {
     let settings = await AdminSettings.findOne().populate("updated_by", "name email")
@@ -203,6 +223,7 @@ export const getAdminSettings = async (req, res) => {
           video_calling: true,
           group_creation: true,
           user_registration: true,
+          site_security_check: true,
         },
         security: {
           require_admin_approval: true,

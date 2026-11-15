@@ -16,10 +16,13 @@ import ECDHEncryption from './encryption/ECDHEncryption';
 import V1Encryption from './encryption/V1Encryption';
 
 const EndToEndEncryptionSetting = ({ onClose }: { onClose: () => void }): JSX.Element => {
-  const { conversationId }: any = useConversation();
+  const { conversationId, participant }: any = useConversation();
   const { user }: any = useUser();
   const { socketRef }: any = useUserAuth();
   const userId = user?._id;
+  const otherUserId = Array.isArray(participant)
+    ? participant.find((item: any) => String(item?._id || item) !== String(userId))?._id
+    : participant?._id;
   const [error, setError] = useState<string>('');
   const [hasUserKey, setHasUserKey] = useState<boolean>(false);
   const [keyVerified, setKeyVerified] = useState<boolean>(false);
@@ -164,7 +167,12 @@ const EndToEndEncryptionSetting = ({ onClose }: { onClose: () => void }): JSX.El
 
         {/* V1 Encryption Tab */}
         {encryptionMethod === 'V1' && (
-          <V1Encryption conversationId={conversationId} socketRef={socketRef} />
+          <V1Encryption
+            conversationId={conversationId}
+            socketRef={socketRef}
+            currentUserId={userId}
+            otherUserId={otherUserId}
+          />
         )}
 
       </div>

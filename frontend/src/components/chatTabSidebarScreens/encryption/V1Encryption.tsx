@@ -8,7 +8,17 @@ import { Eye, EyeOff, Copy, CircleCheckBig, HelpCircle, Save } from "lucide-reac
 import toast from "react-hot-toast";
 import CorruptionSettings from './CorruptionSettings';
 
-const V1Encryption = ({ conversationId, socketRef }: { conversationId: string; socketRef: any }): JSX.Element => {
+const V1Encryption = ({
+  conversationId,
+  socketRef,
+  currentUserId,
+  otherUserId,
+}: {
+  conversationId: string;
+  socketRef: any;
+  currentUserId: string;
+  otherUserId?: string;
+}): JSX.Element => {
   const [v1CustomKey, setV1CustomKey] = useState<string>('');
   const [v1CurrentKey, setV1CurrentKey] = useState<string>('');
   const [showV1Key, setShowV1Key] = useState<boolean>(false);
@@ -83,8 +93,10 @@ const V1Encryption = ({ conversationId, socketRef }: { conversationId: string; s
 
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-base text-white">Current V1 Key</CardTitle>
-          <CardDescription className="text-gray-300">Copy and share with participants</CardDescription>
+          <CardTitle className="text-base text-white">Legacy V1 Key</CardTitle>
+          <CardDescription className="text-gray-300">
+            Used only to decrypt messages created before two-layer V1 was enabled.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -122,7 +134,7 @@ const V1Encryption = ({ conversationId, socketRef }: { conversationId: string; s
 
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-base text-white">Set Custom V1 Key</CardTitle>
+          <CardTitle className="text-base text-white">Set Legacy V1 Key</CardTitle>
           <CardDescription className="text-gray-300">Minimum 16 characters required</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -181,7 +193,11 @@ const V1Encryption = ({ conversationId, socketRef }: { conversationId: string; s
       </Card>
 
       {/* Corruption Settings */}
-      <CorruptionSettings conversationId={conversationId} />
+      <CorruptionSettings
+        conversationId={conversationId}
+        currentUserId={currentUserId}
+        otherUserId={otherUserId}
+      />
     </>
   );
 };
