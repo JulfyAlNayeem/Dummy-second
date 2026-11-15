@@ -245,7 +245,23 @@ export const getAdminSettings = async (req, res) => {
 
 export const updateAdminSettings = async (req, res) => {
   try {
-    const updates = req.body
+    const updates = { ...req.body }
+    const flatFeatureUpdates = {}
+    const featureKeys = Object.keys(AdminSettings.schema.obj.features || {})
+
+    featureKeys.forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(updates, key)) {
+        flatFeatureUpdates[key] = updates[key]
+        delete updates[key]
+      }
+    })
+
+    if (Object.keys(flatFeatureUpdates).length > 0) {
+      updates.features = {
+        ...(updates.features || {}),
+        ...flatFeatureUpdates,
+      }
+    }
 
     let settings = await AdminSettings.findOne()
     if (!settings) {

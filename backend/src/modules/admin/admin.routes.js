@@ -34,7 +34,7 @@ router.post("/approvals/:approvalId/reject", requireAdmin, rejectUser)
 // Settings
 router.get("/public-settings", getPublicAdminSettings)
 router.get("/settings", requireAdmin, getAdminSettings)
-router.put("/settings", requireSuperAdmin, updateAdminSettings)
+router.put("/settings", requireAdmin, requireSuperAdmin, updateAdminSettings)
 
 // Activity Logs
 router.get("/logs", requireAdmin, getActivityLogs)
