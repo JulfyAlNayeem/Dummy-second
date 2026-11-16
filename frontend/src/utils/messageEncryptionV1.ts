@@ -3,7 +3,6 @@ import {
   addConfiguredCorruption,
   generateCorruptionKey,
   removeConfiguredCorruption,
-  removeCorruption,
 } from "./corruptionUtils";
 
 // Cache to store derived keys by conversationId
@@ -627,46 +626,6 @@ function getEncryptionKey(conversationId: any): any {
   return conversationId;
 }
 
-function decryptLegacyMessage(cipher: any, conversationId: any): any {
-  if (!conversationId) {
-    // No key → treat it as plain text
-    return cipher;
-  }
-
-  const derivedKey = getDerivedKey(conversationId);
-
-  // First, try assuming it's corrupted
-  const clean = removeCorruption(cipher, conversationId);
-  try {
-    const bytes = CryptoJS.AES.decrypt(clean, derivedKey);
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-    if (decrypted) {
-      console.log('✅ V1 Decryption SUCCESS');
-      return decrypted;
-    }
-  } catch (err) {
-    // Ignore and try next
-    console.log('⚠️ V1 Decryption failed (with corruption removal)');
-  }
-
-  // If failed, try assuming no corruption
-  try {
-    const bytes = CryptoJS.AES.decrypt(cipher, derivedKey);
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-    if (decrypted) {
-      console.log('✅ V1 Decryption SUCCESS (no corruption)');
-      return decrypted;
-    }
-  } catch (err) {
-    // Ignore
-    console.log('⚠️ V1 Decryption failed (without corruption removal)');
-  }
-
-  // If both failed, throw error instead of returning cipher
-  console.error('❌ V1 Decryption FAILED - Wrong key!');
-  throw new Error('[V1 Decryption Failed - Wrong Key]');
-}
-
 export async function encryptMessage(
   msg: string,
   conversationId: string,
@@ -775,5 +734,5 @@ export async function decryptMessage(
     );
   }
 
-  return decryptLegacyMessage(cipher, conversationId);
+  throw new Error("Unsupported V1 message format");
 }

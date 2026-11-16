@@ -211,62 +211,7 @@ const CorruptionSettings = ({
         </Alert>
 
         <div className="space-y-2">
-          <Label className="text-white">Settings belong to sender user ID</Label>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSenderId(currentUserId || "")}
-              className="border-gray-700"
-            >
-              My settings
-            </Button>
-            {otherUserId && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSenderId(otherUserId)}
-                className="border-gray-700"
-              >
-                Other participant
-              </Button>
-            )}
-          </div>
-          <input
-            type="text"
-            value={senderId}
-            onChange={(event) => setSenderId(event.target.value.trim())}
-            placeholder="Enter user ID"
-            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
-          />
-          <p className="text-xs text-gray-400">
-            {isOwnSettings
-              ? "These are your outgoing-message settings."
-              : "Enter this sender's matching secrets and settings to read their messages."}
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-white">Configuration ID</Label>
-          <input
-            type="text"
-            value={configId}
-            onChange={(event) => setConfigId(event.target.value.trim())}
-            readOnly={isOwnSettings}
-            placeholder={
-              isOwnSettings
-                ? "Generated when you save your settings"
-                : "Enter the sender's configuration ID"
-            }
-            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
-          />
-          <p className="text-xs text-gray-400">
-            Share this ID with the secrets so recipients can select the right settings version.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-white">Secret 1 (minimum 16 characters)</Label>
+          <Label className="text-white">1. First encryption key (minimum 16 characters)</Label>
           <input
             type={showSecrets ? "text" : "password"}
             value={key1}
@@ -280,38 +225,11 @@ const CorruptionSettings = ({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white">Secret 2 (minimum 16 characters)</Label>
-          <input
-            type={showSecrets ? "text" : "password"}
-            value={key2}
-            onChange={(event) => {
-              setKey2(event.target.value);
-              if (isOwnSettings) setConfigId("");
-            }}
-            autoComplete="new-password"
-            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
-          />
+          <Label className="text-white">2. Corruption settings</Label>
+          <p className="text-xs text-gray-400">
+            These random strings are inserted after the first encryption and before the second.
+          </p>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowSecrets((visible) => !visible)}
-            className="border-gray-700"
-          >
-            {showSecrets ? "Hide secrets" : "Show secrets"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleGenerateSecrets}
-            disabled={!isOwnSettings}
-            className="border-gray-700"
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Generate two secrets
-          </Button>
-        </div>
-
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label className="text-white">Position count (1-100)</Label>
@@ -371,6 +289,97 @@ const CorruptionSettings = ({
           </Button>
           <p className="text-xs text-gray-400">
             Positions beyond a message's encrypted text length are skipped.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-white">3. Second encryption key (minimum 16 characters)</Label>
+          <input
+            type={showSecrets ? "text" : "password"}
+            value={key2}
+            onChange={(event) => {
+              setKey2(event.target.value);
+              if (isOwnSettings) setConfigId("");
+            }}
+            autoComplete="new-password"
+            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowSecrets((visible) => !visible)}
+            className="border-gray-700"
+          >
+            {showSecrets ? "Hide keys" : "Show keys"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleGenerateSecrets}
+            disabled={!isOwnSettings}
+            className="border-gray-700"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate two keys
+          </Button>
+        </div>
+
+        <div className="space-y-2 border-t border-gray-700 pt-4">
+          <Label className="text-white">4. Participant settings</Label>
+          <p className="text-xs text-gray-400">
+            Choose whose outgoing messages these keys and corruption settings belong to.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSenderId(currentUserId || "")}
+              className="border-gray-700"
+            >
+              My settings
+            </Button>
+            {otherUserId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSenderId(otherUserId)}
+                className="border-gray-700"
+              >
+                Other participant
+              </Button>
+            )}
+          </div>
+          <input
+            type="text"
+            value={senderId}
+            onChange={(event) => setSenderId(event.target.value.trim())}
+            placeholder="Enter sender user ID"
+            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+          />
+          <p className="text-xs text-gray-400">
+            {isOwnSettings
+              ? "These are your outgoing-message settings."
+              : "Enter this sender's matching keys and settings to read their messages."}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-white">Configuration ID</Label>
+          <input
+            type="text"
+            value={configId}
+            onChange={(event) => setConfigId(event.target.value.trim())}
+            readOnly={isOwnSettings}
+            placeholder={
+              isOwnSettings
+                ? "Generated when you save your settings"
+                : "Enter the sender's configuration ID"
+            }
+            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
+          />
+          <p className="text-xs text-gray-400">
+            Share this ID with the keys so recipients can select the right settings version.
           </p>
         </div>
 
