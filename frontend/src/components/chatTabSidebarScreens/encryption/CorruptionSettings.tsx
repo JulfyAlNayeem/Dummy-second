@@ -263,21 +263,30 @@ const CorruptionSettings = ({
 
         <div className="space-y-2">
           <Label className="text-white">Corruption positions</Label>
-          <textarea
-            value={positionsText}
-            onChange={(event) => {
-              const value = event.target.value;
-              setPositionsText(value);
-              if (isOwnSettings) setConfigId("");
-              const count = value
-                .split(",")
-                .filter((position) => position.trim().length > 0).length;
-              setPositionCount(count);
-            }}
-            rows={3}
-            className="w-full p-2 bg-gray-900 text-gray-100 rounded-md border border-gray-700"
-            placeholder="Example: 5, 9, 15, 20, 30"
-          />
+          <div className="flex flex-wrap gap-2">
+            {positionsText.split(",").map((position, index) => (
+              <input
+                key={index}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                aria-label={`Corruption position ${index + 1}`}
+                value={position.trim()}
+                onChange={(event) => {
+                  const positions = positionsText.split(",");
+                  positions[index] = event.target.value;
+                  const value = positions.join(", ");
+                  setPositionsText(value);
+                  if (isOwnSettings) setConfigId("");
+                  const count = value
+                    .split(",")
+                    .filter((item) => item.trim().length > 0).length;
+                  setPositionCount(count);
+                }}
+                className="h-12 w-16 rounded-md border border-gray-700 bg-gray-900 text-center text-lg font-semibold text-gray-100 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            ))}
+          </div>
           <Button
             variant="outline"
             size="sm"
