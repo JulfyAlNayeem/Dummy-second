@@ -33,6 +33,8 @@ type Props = {
 };
 
 const DEFAULT_POSITIONS = [5, 9, 15, 20, 30];
+const outlineButtonClass =
+  "border-blue-500/40 bg-blue-950/50 text-blue-100 hover:bg-blue-900/70 hover:text-white";
 
 function randomPositions(count: number): number[] {
   if (!Number.isInteger(count) || count < 1 || count > 100) {
@@ -291,7 +293,7 @@ const CorruptionSettings = ({
             variant="outline"
             size="sm"
             onClick={handleGeneratePositions}
-            className="border-gray-700"
+            className={outlineButtonClass}
           >
             <Shuffle className="h-4 w-4 mr-2" />
             Generate random positions
@@ -319,7 +321,7 @@ const CorruptionSettings = ({
           <Button
             variant="outline"
             onClick={() => setShowSecrets((visible) => !visible)}
-            className="border-gray-700"
+            className={outlineButtonClass}
           >
             {showSecrets ? "Hide keys" : "Show keys"}
           </Button>
@@ -327,7 +329,7 @@ const CorruptionSettings = ({
             variant="outline"
             onClick={handleGenerateSecrets}
             disabled={!isOwnSettings}
-            className="border-gray-700"
+            className={outlineButtonClass}
           >
             <Sparkles className="h-4 w-4 mr-2" />
             Generate two keys
@@ -344,7 +346,7 @@ const CorruptionSettings = ({
               variant="outline"
               size="sm"
               onClick={() => setSenderId(currentUserId || "")}
-              className="border-gray-700"
+              className={outlineButtonClass}
             >
               My settings
             </Button>
@@ -353,7 +355,7 @@ const CorruptionSettings = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setSenderId(otherUserId)}
-                className="border-gray-700"
+                className={outlineButtonClass}
               >
                 Other participant
               </Button>
@@ -413,7 +415,7 @@ const CorruptionSettings = ({
             variant="outline"
             onClick={handleExport}
             disabled={!getV1SenderSettings(conversationId, senderId)}
-            className="border-gray-700"
+            className={outlineButtonClass}
           >
             <Download className="h-4 w-4 mr-2" />
             Export JSON
@@ -422,7 +424,7 @@ const CorruptionSettings = ({
             variant="outline"
             onClick={() => importInputRef.current?.click()}
             disabled={isImporting}
-            className="border-gray-700"
+            className={outlineButtonClass}
           >
             <Upload className="h-4 w-4 mr-2" />
             {isImporting ? "Importing..." : "Import JSON"}
