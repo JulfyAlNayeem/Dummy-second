@@ -127,8 +127,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  // Allow the small AES-GCM header and encrypted metadata for V1 chat uploads.
-  limits: { fileSize: 10 * 1024 * 1024 + 2048 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
 // Custom middleware to handle Multer errors

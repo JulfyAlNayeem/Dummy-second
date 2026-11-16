@@ -84,7 +84,7 @@ export default function SystemSettings(): JSX.Element {
                             features: { ...settings.features, [key]: checked },
                           });
                         }}
-                        className="bg-gray-600 dark:bg-gray-300"
+                        className="bg-blue-600 dark:bg-blue-300"
                       />
                     </div>
                   ))}
