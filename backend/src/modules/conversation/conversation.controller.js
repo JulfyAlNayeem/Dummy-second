@@ -66,7 +66,7 @@ export const getAllConversations = async (req, res) => {
           // SMTE transport payload stored verbatim (old data before fix)
           convo.last_message.message = '[Encrypted message]';
         }
-        // Plain text, ECDH JSON, V1 — leave as-is; useMessageDecryption handles on client
+        // The backend layer is removed above; ECDH/V1 ciphertext remains for client decryption.
       })
     );
 

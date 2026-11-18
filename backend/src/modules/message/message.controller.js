@@ -89,10 +89,13 @@ async function handleBackendEncryption(text, conversationId, conversation) {
       throw new Error('Backend encryption payload does not match the conversation encryption method');
     }
 
+    const frontendCiphertext = isBackendEncrypted(text)
+      ? await backendDecrypt(text)
+      : text;
     return {
-      text,
-      plaintext: isBackendEncrypted(text) ? null : text,
-      isBackendEncrypted: isBackendEncrypted(text),
+      text: await backendEncrypt(frontendCiphertext),
+      plaintext: frontendCiphertext,
+      isBackendEncrypted: true,
     };
   }
 
@@ -117,10 +120,7 @@ async function handleBackendEncryption(text, conversationId, conversation) {
 }
 
 async function encryptConversationPreview(conversation, text) {
-  if (
-    typeof text === 'string' &&
-    (conversation?.encryptionMethod || 'Backend') === 'Backend'
-  ) {
+  if (typeof text === 'string' && text.length > 0) {
     return backendEncrypt(text);
   }
   return text;
@@ -1021,7 +1021,6 @@ export const editMessageCore = async ({
       let previousText = message.text;
       if (
         previousText &&
-        (conversation.encryptionMethod || "Backend") === "Backend" &&
         !isBackendEncrypted(previousText)
       ) {
         previousText = await backendEncrypt(previousText);

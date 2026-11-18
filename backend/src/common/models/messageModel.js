@@ -31,7 +31,7 @@ const messageSchema = new Schema(
       default: false,
     },
     
-    // Backend server-side encryption flag
+    // Indicates that the stored text has the backend at-rest encryption layer.
     isBackendEncrypted: {
       type: Boolean,
       default: false,
