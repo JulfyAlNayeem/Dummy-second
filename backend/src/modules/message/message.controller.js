@@ -313,7 +313,8 @@ export const sendFileMessage = async (req, res) => {
     await updateConversationState(
       conversation,
       userId,
-      await encryptConversationPreview(conversation, previewText || "[Media]")
+      await encryptConversationPreview(conversation, previewText || "[Media]"),
+      newMessage.scheduledDeletionTime
     );
 
     const populatedMessage = await Message.findById(newMessage._id)
@@ -447,7 +448,8 @@ export const sendTextMessage = async ({
     await updateConversationState(
       conversation,
       sender,
-      await encryptConversationPreview(conversation, previewText || "[Media]")
+      await encryptConversationPreview(conversation, previewText || "[Media]"),
+      newMessage.scheduledDeletionTime
     );
 
     const populatedMessage = await Message.findById(newMessage._id)
@@ -636,7 +638,8 @@ const sendEmojiCore = async ({
       await encryptConversationPreview(
         conversation,
         encryptionResult.plaintext || "[Emoji]"
-      )
+      ),
+      newMessage.scheduledDeletionTime
     );
 
     const populatedMessage = await Message.findById(newMessage._id)
@@ -1346,6 +1349,7 @@ export const sendReplyCore = async ({
         ),
         sender,
         timestamp: new Date(),
+        expiresAt: newMessage.scheduledDeletionTime,
       };
 
       conversation.participants.forEach((participant) => {

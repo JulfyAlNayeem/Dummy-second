@@ -21,7 +21,8 @@ import {
   addMessage, 
   updateMessage, 
   setAllConversations,
-  updateConversationLastMessage 
+  updateConversationLastMessage,
+  clearConversationLastMessage,
 } from '@/redux/slices/conversationSlice';
 import { selectMessagesByConversationId } from '@/lib/conversationSelectors';
 import toast from 'react-hot-toast';
@@ -216,6 +217,11 @@ const GlobalMessageHandler = (): JSX.Element | null => {
     }
   }, [dispatch]);
 
+  const handleLastMessageExpired = useCallback(({ conversationId }) => {
+    if (!conversationId) return;
+    dispatch(clearConversationLastMessage({ conversationId }));
+  }, [dispatch]);
+
   /**
    * Subscribe to global socket events
    */
@@ -279,6 +285,7 @@ const GlobalMessageHandler = (): JSX.Element | null => {
     
     // Listen for message deletion
     socket.on('messageDeleted', handleMessageDeleted);
+    socket.on('conversationLastMessageExpired', handleLastMessageExpired);
 
     // Listen for message edits from other participants
     const handleMessageEdited = (editedMessage) => {
@@ -311,6 +318,7 @@ const GlobalMessageHandler = (): JSX.Element | null => {
       socket.off('messagesRead', handleMessagesRead);
       socket.off('messagesDelivered', handleMessagesDelivered);
       socket.off('messageDeleted', handleMessageDeleted);
+      socket.off('conversationLastMessageExpired', handleLastMessageExpired);
       socket.off('messageEdited', handleMessageEdited);
       socket.off('reconnect');
     };
@@ -322,6 +330,7 @@ const GlobalMessageHandler = (): JSX.Element | null => {
     handleConversationUpdate,
     handleMessageStatus,
     handleMessageDeleted,
+    handleLastMessageExpired,
     dispatch
   ]);
 

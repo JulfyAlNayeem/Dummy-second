@@ -389,6 +389,23 @@ const conversationSlice = createSlice({
         state.allConversations.unshift(updatedConversation);
       }
     },
+    clearConversationLastMessage(state, action) {
+      const { conversationId } = action.payload;
+      const conversationIndex = state.allConversations.findIndex(
+        (conversation) => conversation._id === conversationId
+      );
+      if (conversationIndex !== -1) {
+        state.allConversations[conversationIndex] = {
+          ...state.allConversations[conversationIndex],
+          last_message: {
+            message: "",
+            sender: null,
+            timestamp: null,
+            expiresAt: null,
+          },
+        };
+      }
+    },
     // Reset unread count when user opens a conversation
     resetConversationUnread(state, action) {
       const { conversationId } = action.payload;
@@ -557,6 +574,7 @@ export const {
   setBlockList,
   migrateNewConversation,
   updateConversationLastMessage,
+  clearConversationLastMessage,
   resetConversationUnread,
   reset,
   clearError,

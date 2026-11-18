@@ -67,12 +67,17 @@ export const computeDeletionTime = (conversation) => {
   return new Date(Date.now() + deleteAfterHours * 60 * 60 * 1000);
 };
 
-export const updateConversationState = async (conversation, senderId, lastText) => {
-  // Update last message details — callers are responsible for passing plaintext.
+export const updateConversationState = async (
+  conversation,
+  senderId,
+  lastText,
+  expiresAt = null
+) => {
   conversation.last_message = {
     message: lastText,
     sender: senderId,
     timestamp: new Date(),
+    expiresAt,
   };
 
   // Update unread count for all participants except sender

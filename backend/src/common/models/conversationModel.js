@@ -76,6 +76,7 @@ const conversationSchema = new Schema(
       message: { type: String, default: "" },
       sender: { type: Schema.Types.ObjectId, ref: "User" }, // Last sender
       timestamp: { type: Date, default: Date.now },
+      expiresAt: { type: Date, default: null },
     },
     unread_messages: [
       {
@@ -144,6 +145,7 @@ const conversationSchema = new Schema(
 conversationSchema.index({ visibility: 1 });
 conversationSchema.index({ "group.type": 1 });
 conversationSchema.index({ participants: 1, updatedAt: -1 });
+conversationSchema.index({ "last_message.expiresAt": 1 });
 
 conversationSchema.pre("save", function (next) {
   if (
