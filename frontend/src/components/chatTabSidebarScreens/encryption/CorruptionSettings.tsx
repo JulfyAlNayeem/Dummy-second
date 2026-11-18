@@ -32,7 +32,8 @@ type Props = {
   otherUserId?: string;
 };
 
-const DEFAULT_POSITIONS = [5, 9, 15, 20, 30];
+const DEFAULT_POSITION_COUNT = 5;
+const DEFAULT_KEY_LENGTH = 4;
 const outlineButtonClass =
   "border-blue-500/40 bg-blue-950/50 text-blue-100 hover:bg-blue-900/70 hover:text-white";
 
@@ -49,6 +50,41 @@ function randomPositions(count: number): number[] {
   return [...selected].sort((a, b) => a - b);
 }
 
+function getOrCreateDefaultPositions(
+  conversationId: string,
+  senderId: string
+): number[] {
+  const storageKey = `v1e2_default_positions_${conversationId}_${senderId}`;
+  const stored = localStorage.getItem(storageKey);
+
+  if (stored) {
+    let positions: unknown;
+    try {
+      positions = JSON.parse(stored);
+    } catch {
+      throw new Error("Saved default corruption positions are invalid");
+    }
+
+    if (
+      !Array.isArray(positions) ||
+      positions.length < 1 ||
+      positions.length > 100 ||
+      positions.some(
+        (position) => !Number.isSafeInteger(position) || position < 1
+      ) ||
+      new Set(positions).size !== positions.length
+    ) {
+      throw new Error("Saved default corruption positions are invalid");
+    }
+
+    return [...positions].sort((a, b) => a - b);
+  }
+
+  const positions = randomPositions(DEFAULT_POSITION_COUNT);
+  localStorage.setItem(storageKey, JSON.stringify(positions));
+  return positions;
+}
+
 const CorruptionSettings = ({
   conversationId,
   currentUserId,
@@ -58,11 +94,9 @@ const CorruptionSettings = ({
   const [configId, setConfigId] = useState("");
   const [key1, setKey1] = useState("");
   const [key2, setKey2] = useState("");
-  const [positionsText, setPositionsText] = useState(
-    DEFAULT_POSITIONS.join(", ")
-  );
-  const [positionCount, setPositionCount] = useState(DEFAULT_POSITIONS.length);
-  const [keyLength, setKeyLength] = useState(4);
+  const [positionsText, setPositionsText] = useState("");
+  const [positionCount, setPositionCount] = useState(DEFAULT_POSITION_COUNT);
+  const [keyLength, setKeyLength] = useState(DEFAULT_KEY_LENGTH);
   const [showSecrets, setShowSecrets] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -79,14 +113,30 @@ const CorruptionSettings = ({
 
   useEffect(() => {
     if (!conversationId || !senderId) return;
-    const settings = getV1SenderSettings(conversationId, senderId);
-    setConfigId(settings?.configId || "");
-    setKey1(settings?.key1 || "");
-    setKey2(settings?.key2 || "");
-    setPositionsText(settings?.positions.join(", ") || DEFAULT_POSITIONS.join(", "));
-    setPositionCount(settings?.positions.length || DEFAULT_POSITIONS.length);
-    setKeyLength(settings?.keyLength || 4);
-  }, [conversationId, senderId]);
+    try {
+      const settings = getV1SenderSettings(conversationId, senderId);
+      const isSenderCurrentUser =
+        String(senderId) === String(currentUserId);
+      const positions = settings
+        ? settings.positions
+        : isSenderCurrentUser
+          ? getOrCreateDefaultPositions(conversationId, senderId)
+          : [];
+
+      setConfigId(settings?.configId || "");
+      setKey1(settings?.key1 || "");
+      setKey2(settings?.key2 || "");
+      setPositionsText(
+        positions.length > 0
+          ? positions.join(", ")
+          : Array(DEFAULT_POSITION_COUNT).fill("").join(", ")
+      );
+      setPositionCount(positions.length || DEFAULT_POSITION_COUNT);
+      setKeyLength(settings?.keyLength ?? DEFAULT_KEY_LENGTH);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load V1 corruption settings");
+    }
+  }, [conversationId, senderId, currentUserId]);
 
   const handleGeneratePositions = (): void => {
     try {
@@ -265,6 +315,11 @@ const CorruptionSettings = ({
 
         <div className="space-y-2">
           <Label className="text-white">Corruption positions</Label>
+          <p className="text-xs text-gray-400">
+            {isOwnSettings
+              ? "Your initial positions are randomized once per conversation and sender, then kept in this browser. Save sender settings to use them for encryption."
+              : "Use the other sender's exact positions. Import their settings or enter the values they shared."}
+          </p>
           <div className="flex flex-wrap gap-2">
             {positionsText.split(",").map((position, index) => (
               <input
